@@ -2,10 +2,14 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-const CUSTOMIZATION_STORAGE = "yt-chat-customization-v3";
+const CUSTOMIZATION_STORAGE = "yt-chat-customization-v4";
 
 export type ChatStyle = "compact" | "comfy";
 export type ThemePreset = "original" | "dark" | "oled" | "light" | "creamy";
+export type FontFamily = "system" | "inter" | "mono" | "serif";
+export type BorderRadius = "none" | "small" | "medium" | "large" | "full";
+export type MessageAlign = "left" | "center";
+export type SidebarPosition = "left" | "right";
 
 interface CustomizationState {
   // Visuals
@@ -15,16 +19,26 @@ interface CustomizationState {
   fontSize: number;
   sidebarOpacity: number;
   
+  // Typography
+  fontFamily: FontFamily;
+  
   // Layout & Focus
   isSidebarCollapsed: boolean;
   focusMode: boolean;
   chatWidth: number; // 25-100%
+  sidebarPosition: SidebarPosition;
+  
+  // Effects
+  borderRadius: BorderRadius;
+  blurIntensity: number; // 0-20
+  glowEffects: boolean;
   
   // Message Display
   showAvatars: boolean;
   showTimestamps: boolean;
   showBadges: boolean;
   messageAnimations: boolean;
+  messageAlign: MessageAlign;
   
   // Performance
   maxLoadedMessages: number;
@@ -38,14 +52,22 @@ const DEFAULT_STATE: CustomizationState = {
   fontSize: 16,
   sidebarOpacity: 95,
   
+  fontFamily: "system",
+  
   isSidebarCollapsed: false,
   focusMode: false,
   chatWidth: 100,
+  sidebarPosition: "left",
+  
+  borderRadius: "medium",
+  blurIntensity: 12,
+  glowEffects: true,
   
   showAvatars: true,
   showTimestamps: false,
   showBadges: true,
   messageAnimations: true,
+  messageAlign: "left",
   
   maxLoadedMessages: 500,
   smoothScrollIntensity: "high",
@@ -61,10 +83,9 @@ const THEMES: Record<ThemePreset, {
   text3: string;
   text4: string;
   text5: string;
-  // UI surface colors
-  surfaceMuted: string;  // For subtle backgrounds
-  surfaceHover: string;  // For hover states
-  border: string;        // For borders
+  surfaceMuted: string;
+  surfaceHover: string;
+  border: string;
 }> = {
   original: {
     bg: "rgb(33, 20, 30)",
@@ -138,6 +159,21 @@ const THEMES: Record<ThemePreset, {
   },
 };
 
+const FONT_FAMILIES: Record<FontFamily, string> = {
+  system: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  inter: "'Inter', system-ui, sans-serif",
+  mono: "'JetBrains Mono', 'Fira Code', monospace",
+  serif: "'Georgia', 'Times New Roman', serif",
+};
+
+const BORDER_RADII: Record<BorderRadius, string> = {
+  none: "0px",
+  small: "4px",
+  medium: "8px",
+  large: "16px",
+  full: "9999px",
+};
+
 const CustomizationContext = createContext<CustomizationState & { updateField: <K extends keyof CustomizationState>(field: K, value: CustomizationState[K]) => void } | null>(null);
 
 export function CustomizationProvider({ children }: { children: ReactNode }) {
@@ -150,8 +186,8 @@ export function CustomizationProvider({ children }: { children: ReactNode }) {
     if (stored) {
       try {
         setState({ ...DEFAULT_STATE, ...JSON.parse(stored) });
-      } catch (e) {
-        console.error("Failed to parse customization state", e);
+      } catch {
+        // Silently fail and use defaults
       }
     }
     setIsLoaded(true);
@@ -185,18 +221,33 @@ export function CustomizationProvider({ children }: { children: ReactNode }) {
     root.style.setProperty("--font-size-base", `${state.fontSize}px`);
     root.style.setProperty("--line-height-base", `${state.fontSize * 1.5}px`);
     
+    // Apply new customizations
+    root.style.setProperty("--font-family", FONT_FAMILIES[state.fontFamily]);
+    root.style.setProperty("--radius-item", BORDER_RADII[state.borderRadius]);
+    root.style.setProperty("--blur-intensity", `${state.blurIntensity}px`);
+    
     // Calculate and apply accent variants
     const r = parseInt(state.accentColor.slice(1, 3), 16);
     const g = parseInt(state.accentColor.slice(3, 5), 16);
     const b = parseInt(state.accentColor.slice(5, 7), 16);
     root.style.setProperty("--accent-muted", `rgba(${r}, ${g}, ${b}, 0.15)`);
     root.style.setProperty("--accent-soft", `rgba(${r}, ${g}, ${b}, 0.1)`);
+    root.style.setProperty("--accent-glow", state.glowEffects ? `0 0 20px rgba(${r}, ${g}, ${b}, 0.3)` : "none");
     
   }, [state, isLoaded]);
 
   const updateField = <K extends keyof CustomizationState>(field: K, value: CustomizationState[K]) => {
     setState((prev) => ({ ...prev, [field]: value }));
   };
+
+  // Prevent hydration mismatch
+  if (!isLoaded) {
+    return (
+      <CustomizationContext.Provider value={{ ...DEFAULT_STATE, updateField }}>
+        <div className="h-screen w-screen bg-background" suppressHydrationWarning />
+      </CustomizationContext.Provider>
+    );
+  }
 
   return (
     <CustomizationContext.Provider value={{ ...state, updateField }}>
