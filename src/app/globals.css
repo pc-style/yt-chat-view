@@ -1,26 +1,141 @@
 @import "tailwindcss";
 
+/* 
+ * "Comfy" App Design System
+ * Inspired by YT_Chat and user specs
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Colors */
+  --background: rgb(33, 20, 30);
+  --sidebar-bg: rgba(28, 17, 26, 0.95);
+  --card-bg: rgba(45, 27, 41, 0.4);
+  --card-border: rgba(251, 208, 232, 0.08);
+  
+  --text-1: rgb(244, 244, 245);
+  --text-2: rgb(231, 208, 221);
+  --text-3: rgb(249, 248, 251);
+  --text-4: rgb(251, 208, 232);
+  --text-5: rgb(196, 96, 149);
+  
+  /* Surface colors (adapt to light/dark) */
+  --surface-muted: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.1);
+  --border: rgba(255, 255, 255, 0.1);
+  
+  --accent: #CA0377;
+  --accent-soft: rgba(202, 3, 119, 0.1);
+  --accent-glow: 0 0 20px rgba(202, 3, 119, 0.2);
+  
+  --radius-app: 16px;
+  --radius-item: 8px;
+  --radius-pill: 9999px;
+  
+  /* Typography */
+  --font-brand: "ProximaVara", "__interFont_6d6793", sans-serif;
+  --font-size-base: 16px;
+  --line-height-base: 24px;
+  --letter-spacing-base: 0.24px;
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-sidebar: var(--sidebar-bg);
+  --color-card: var(--card-bg);
+  --color-card-border: var(--card-border);
+  
+  --color-text-v1: var(--text-1);
+  --color-text-v2: var(--text-2);
+  --color-text-v3: var(--text-3);
+  --color-text-v4: var(--text-4);
+  --color-text-v5: var(--text-5);
+  
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  
+  --radius-brand-1: var(--radius-item);
+  --radius-brand-2: var(--radius-app);
+  
+  --font-sans: var(--font-brand);
   --font-mono: var(--font-geist-mono);
+  
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Base resets */
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
+html, body {
+  height: 100%;
+  overflow: hidden;
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-3);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  letter-spacing: var(--letter-spacing-base);
+}
+
+/* Layout Classes */
+.sidebar-item {
+  @apply flex items-center gap-3 px-3 py-2 rounded-brand-1 text-text-v2 transition-all hover:bg-white/5 hover:text-text-v3 cursor-pointer;
+}
+
+.sidebar-item.active {
+  @apply bg-accent-soft text-accent font-medium;
+}
+
+.card-base {
+  @apply bg-card border border-card-border rounded-brand-2 backdrop-blur-md;
+}
+
+.glass-pill {
+  @apply bg-white/5 border border-white/10 rounded-full px-4 py-2 backdrop-blur-sm transition-all;
+}
+
+.btn-comfy {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-comfy-primary {
+  @apply bg-accent text-white shadow-lg hover:brightness-110 shadow-accent/20;
+}
+
+.btn-comfy-secondary {
+  @apply bg-white/5 text-text-v3 border border-white/10 hover:bg-white/10;
+}
+
+/* Scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Animations */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: slideIn 0.3s ease-out forwards;
 }
