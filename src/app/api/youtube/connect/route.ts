@@ -39,7 +39,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { videoId } = body;
+    const { videoId, apiKey: clientApiKey } = body;
+
+    const activeApiKey = clientApiKey || apiKey;
 
     if (!videoId || typeof videoId !== "string") {
       return Response.json(
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     const params = new URLSearchParams({
       part: "snippet,liveStreamingDetails",
       id: videoId,
-      key: apiKey,
+      key: activeApiKey,
     });
 
     const response = await fetch(`${YOUTUBE_API_BASE}/videos?${params}`);
@@ -77,13 +79,13 @@ export async function POST(request: NextRequest) {
     const video = data.items[0];
     const channelId = video.snippet?.channelId;
 
-    // Validate channel
-    if (channelId !== ALLOWED_CHANNEL_ID) {
+    // Validate channel ONLY if no client API key is provided
+    if (!clientApiKey && channelId !== ALLOWED_CHANNEL_ID) {
       return Response.json(
         { 
           status: "error", 
           code: "CHANNEL_NOT_ALLOWED", 
-          message: "Only streams from the authorized channel are allowed" 
+          message: "Only streams from @t3dotgg are allowed unless you use your own API Key (BYOK)" 
         },
         { status: 403 }
       );

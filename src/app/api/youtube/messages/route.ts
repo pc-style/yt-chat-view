@@ -54,7 +54,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { liveChatId, pageToken } = body;
+    const { liveChatId, pageToken, apiKey: clientApiKey } = body;
+
+    const activeApiKey = clientApiKey || apiKey;
 
     if (!liveChatId || typeof liveChatId !== "string") {
       return Response.json(
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
       part: "snippet,authorDetails",
       liveChatId,
       maxResults: "200",
-      key: apiKey,
+      key: activeApiKey,
     });
 
     if (pageToken) {

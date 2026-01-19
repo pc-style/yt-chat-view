@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { Badge } from "./Badge";
 import type { ChatMessage as ChatMessageType } from "@/types/youtube";
@@ -42,23 +43,41 @@ function getUsernameColor(channelId: string, badges: ChatMessageType["badges"]):
  * Comfy: Full layout with stacked username and message
  */
 export function ChatMessage({ message }: ChatMessageProps) {
-  const { chatStyle, showAvatars, showTimestamps, showBadges, messageAnimations } = useCustomization();
+  const [imgError, setImgError] = useState(false);
+  const { chatStyle, showAvatars, showTimestamps, showBadges, messageAnimations, fontSize, borderRadius } = useCustomization();
   const usernameColor = getUsernameColor(message.authorChannelId, message.badges);
   const isCompact = chatStyle === "compact";
+
+  // Dynamic styles from customization
+  const messageStyle: React.CSSProperties = {
+    fontFamily: 'var(--font-family)',
+    fontSize: `${fontSize}px`,
+    lineHeight: `${fontSize * 1.5}px`,
+  };
+
+  const radiusMap: Record<string, string> = {
+    none: '0px',
+    small: '4px',
+    medium: '8px',
+    large: '12px',
+    full: '16px',
+  };
+  const itemRadius = radiusMap[borderRadius] || '8px';
 
   // Compact mode: Single line inline layout
   if (isCompact) {
     return (
       <article
         className={`group flex items-center gap-1.5 px-3 py-0 transition-colors hover:bg-surface-muted border-l-2 border-transparent hover:border-accent/40 ${messageAnimations ? "animate-fade-in" : ""}`}
-        style={
-          message.isSuperChat && message.superChatColor
+        style={{
+          borderRadius: itemRadius,
+          ...(message.isSuperChat && message.superChatColor
             ? { 
                 backgroundColor: `${message.superChatColor}10`,
                 borderColor: message.superChatColor
               }
-            : undefined
-        }
+            : {})
+        }}
       >
         {/* Timestamp - always visible in compact */}
         {showTimestamps && (
@@ -69,14 +88,21 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
         {/* Avatar (tiny) */}
         {showAvatars && (
-          <div className="relative h-4 w-4 shrink-0 overflow-hidden rounded-full border border-white/10">
-            <Image
-              src={message.authorAvatarUrl}
-              alt=""
-              fill
-              className="object-cover"
-              unoptimized
-            />
+          <div className="relative h-4 w-4 shrink-0 overflow-hidden rounded-full border border-white/10 flex items-center justify-center bg-white/5">
+            {imgError ? (
+              <span className="text-[8px] font-black text-white/50 uppercase">
+                {message.authorName.charAt(0)}
+              </span>
+            ) : (
+              <Image
+                src={message.authorAvatarUrl}
+                alt=""
+                fill
+                className="object-cover"
+                unoptimized
+                onError={() => setImgError(true)}
+              />
+            )}
           </div>
         )}
 
@@ -105,7 +131,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </span>
         
         {/* Message (inline, truncated) */}
-        <span className="text-[12px] text-text-v2 truncate">
+        <span className="text-text-v2 truncate" style={messageStyle}>
           {message.message}
         </span>
       </article>
@@ -116,26 +142,34 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <article
       className={`group relative flex gap-3 px-6 py-2.5 transition-all hover:bg-surface-muted border-l-2 border-transparent hover:border-accent/40 ${messageAnimations ? "animate-fade-in" : ""} ${message.isSuperChat ? "my-2" : ""}`}
-      style={
-        message.isSuperChat && message.superChatColor
+      style={{
+        borderRadius: itemRadius,
+        ...(message.isSuperChat && message.superChatColor
           ? { 
               backgroundColor: `${message.superChatColor}10`,
               borderColor: message.superChatColor
             }
-          : undefined
-      }
+          : {})
+      }}
     >
       {/* Avatar */}
       {showAvatars && (
         <div className="flex-shrink-0 pt-1">
-          <div className="relative h-9 w-9 overflow-hidden rounded-full border border-border group-hover:border-accent/30 transition-colors shadow-lg shadow-black/20">
-            <Image
-              src={message.authorAvatarUrl}
-              alt=""
-              fill
-              className="object-cover"
-              unoptimized
-            />
+          <div className="relative h-9 w-9 overflow-hidden rounded-full border border-border group-hover:border-accent/30 transition-colors shadow-lg shadow-black/20 flex items-center justify-center bg-white/5">
+            {imgError ? (
+              <span className="text-sm font-black text-text-v4 uppercase">
+                {message.authorName.charAt(0)}
+              </span>
+            ) : (
+              <Image
+                src={message.authorAvatarUrl}
+                alt=""
+                fill
+                className="object-cover"
+                unoptimized
+                onError={() => setImgError(true)}
+              />
+            )}
           </div>
         </div>
       )}
@@ -175,7 +209,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
 
         {/* Message Body */}
-        <p className="text-[15px] leading-relaxed text-text-v2 font-medium">
+        <p className="text-text-v2 font-medium" style={messageStyle}>
           {message.message}
         </p>
       </div>

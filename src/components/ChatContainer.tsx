@@ -22,7 +22,7 @@ export function ChatContainer({ messages }: ChatContainerProps) {
   const [newMessageCount, setNewMessageCount] = useState(0);
   const lastMessageCountRef = useRef(0);
   
-  const { smoothScrollIntensity, chatStyle } = useCustomization();
+  const { smoothScrollIntensity, chatStyle, messageAlign } = useCustomization();
 
   // Estimate size based on chat style (Compact vs Comfy)
   const estimateSize = useCallback(() => {
@@ -97,7 +97,9 @@ export function ChatContainer({ messages }: ChatContainerProps) {
               }}
               ref={virtualizer.measureElement}
             >
-              <ChatMessage message={messages[virtualRow.index]} />
+              <div className={messageAlign === "center" ? "flex justify-center" : ""}>
+                <ChatMessage message={messages[virtualRow.index]} />
+              </div>
             </div>
           ))}
         </div>

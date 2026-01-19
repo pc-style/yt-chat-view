@@ -43,6 +43,9 @@ interface CustomizationState {
   // Performance
   maxLoadedMessages: number;
   smoothScrollIntensity: "off" | "low" | "high";
+  
+  // API Keys (BYOK)
+  apiKey: string;
 }
 
 const DEFAULT_STATE: CustomizationState = {
@@ -71,6 +74,8 @@ const DEFAULT_STATE: CustomizationState = {
   
   maxLoadedMessages: 500,
   smoothScrollIntensity: "high",
+  
+  apiKey: "",
 };
 
 const THEMES: Record<ThemePreset, { 
@@ -161,8 +166,8 @@ const THEMES: Record<ThemePreset, {
 
 const FONT_FAMILIES: Record<FontFamily, string> = {
   system: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  inter: "'Inter', system-ui, sans-serif",
-  mono: "'JetBrains Mono', 'Fira Code', monospace",
+  inter: "var(--font-inter), system-ui, sans-serif",
+  mono: "var(--font-mono), monospace",
   serif: "'Georgia', 'Times New Roman', serif",
 };
 

@@ -18,7 +18,9 @@ import {
   PanelRight,
   Circle,
   Square,
-  RectangleHorizontal
+  RectangleHorizontal,
+  Key,
+  Info
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { 
@@ -57,7 +59,8 @@ export function CustomizationSidebar() {
     blurIntensity,
     glowEffects,
     messageAlign,
-    sidebarPosition
+    sidebarPosition,
+    apiKey
   } = useCustomization();
   
   const colorPresets = ["#CA0377", "#9147ff", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#8b5cf6"];
@@ -119,7 +122,7 @@ export function CustomizationSidebar() {
           >
             <MessageSquare className="h-5 w-5 text-accent" />
           </div>
-          <span className="text-xl font-black tracking-tighter text-text-v1">YT_Chat</span>
+          <span className="text-xl font-black tracking-tighter text-text-v1">yT3 Chat</span>
         </div>
       </div>
 
@@ -451,6 +454,38 @@ export function CustomizationSidebar() {
                 />
               </motion.div>
             </button>
+          </div>
+        </section>
+
+        {/* --- API & CONNECTIVITY --- */}
+        <section className="space-y-5 animate-fade-in" style={{ animationDelay: "300ms" }}>
+          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
+            <Key className="h-4 w-4 text-accent" />
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-text-v3">API & BYOK</h2>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">YouTube API Key</label>
+            <div className="relative group">
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => updateField("apiKey", e.target.value)}
+                placeholder="Paste your API key here..."
+                className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-xs text-text-v1 focus:border-accent/50 focus:ring-1 focus:ring-accent/20 outline-none transition-all"
+              />
+              <Key className="absolute right-3 top-2.5 h-3.5 w-3.5 text-text-v5/30 group-focus-within:text-accent transition-colors" />
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-accent/5 border border-accent/10 space-y-2">
+            <div className="flex items-center gap-2 text-accent">
+              <Info className="h-3.5 w-3.5" />
+              <span className="text-[10px] font-bold uppercase">Pro Tip</span>
+            </div>
+            <p className="text-[11px] text-text-v5 leading-relaxed">
+              Without an API key, you are limited to <span className="text-text-v3 font-bold">@t3dotgg</span> streams. Add your own key to support <span className="text-text-v3 font-bold">ANY</span> channel.
+            </p>
           </div>
         </section>
 

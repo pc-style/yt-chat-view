@@ -10,33 +10,34 @@
   --sidebar-bg: rgba(28, 17, 26, 0.95);
   --card-bg: rgba(45, 27, 41, 0.4);
   --card-border: rgba(251, 208, 232, 0.08);
-  
+
   --text-1: rgb(244, 244, 245);
   --text-2: rgb(231, 208, 221);
   --text-3: rgb(249, 248, 251);
   --text-4: rgb(251, 208, 232);
   --text-5: rgb(196, 96, 149);
-  
+
   /* Surface colors (adapt to light/dark) */
   --surface-muted: rgba(255, 255, 255, 0.05);
   --surface-hover: rgba(255, 255, 255, 0.1);
   --border: rgba(255, 255, 255, 0.1);
-  
-  --accent: #CA0377;
+
+  --accent: #ca0377;
   --accent-soft: rgba(202, 3, 119, 0.1);
   --accent-glow: 0 0 20px rgba(202, 3, 119, 0.2);
-  
+
   --radius-app: 16px;
   --radius-item: 8px;
   --radius-pill: 9999px;
-  
+
   /* Typography */
-  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-brand: var(--font-family);
   --font-size-base: 16px;
   --line-height-base: 24px;
   --letter-spacing-base: 0.24px;
-  
+
   /* Effects */
   --blur-intensity: 12px;
   --accent-glow: 0 0 20px rgba(202, 3, 119, 0.2);
@@ -47,26 +48,26 @@
   --color-sidebar: var(--sidebar-bg);
   --color-card: var(--card-bg);
   --color-card-border: var(--card-border);
-  
+
   --color-text-v1: var(--text-1);
   --color-text-v2: var(--text-2);
   --color-text-v3: var(--text-3);
   --color-text-v4: var(--text-4);
   --color-text-v5: var(--text-5);
-  
+
   --color-surface-muted: var(--surface-muted);
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
-  
+
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
-  
+
   --radius-brand-1: var(--radius-item);
   --radius-brand-2: var(--radius-app);
-  
+
   --font-sans: var(--font-brand);
   --font-mono: var(--font-geist-mono);
-  
+
   --spacing-4: 1rem;
   --spacing-6: 1.5rem;
 }
@@ -77,17 +78,20 @@
   -webkit-font-smoothing: antialiased;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
   background: var(--background);
   color: var(--text-3);
-  font-family: var(--font-sans);
+  font-family: var(--font-family);
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   letter-spacing: var(--letter-spacing-base);
   /* Smooth theme transitions */
-  transition: background-color 0.4s ease, color 0.3s ease;
+  transition:
+    background-color 0.4s ease,
+    color 0.3s ease;
 }
 
 /* Layout Classes */
@@ -100,11 +104,13 @@ html, body {
 }
 
 .card-base {
-  @apply bg-card border border-card-border rounded-brand-2 backdrop-blur-md;
+  @apply bg-card border border-card-border rounded-brand-2;
+  backdrop-filter: blur(var(--blur-intensity));
 }
 
 .glass-pill {
-  @apply bg-white/5 border border-white/10 rounded-full px-4 py-2 backdrop-blur-sm transition-all;
+  @apply bg-white/5 border border-white/10 rounded-full px-4 py-2 transition-all;
+  backdrop-filter: blur(var(--blur-intensity));
 }
 
 .btn-comfy {
@@ -139,8 +145,14 @@ html, body {
 
 /* Animations */
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {

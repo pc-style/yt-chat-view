@@ -6,6 +6,7 @@ import { extractVideoId } from "@/lib/youtube";
 
 interface UseChatOptions {
   maxMessages?: number;
+  apiKey?: string;
 }
 
 interface UseChatReturn {
@@ -134,7 +135,7 @@ function transformMessage(msg: ApiMessage): ChatMessage {
 /**
  * Hook for managing YouTube Live Chat polling via server API
  */
-export function useChat({ maxMessages = 500 }: UseChatOptions = {}): UseChatReturn {
+export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): UseChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [error, setError] = useState<string | null>(null);
@@ -171,6 +172,7 @@ export function useChat({ maxMessages = 500 }: UseChatOptions = {}): UseChatRetu
         body: JSON.stringify({
           liveChatId: liveChatIdRef.current,
           pageToken: pageTokenRef.current,
+          apiKey,
         }),
       });
 
@@ -214,7 +216,7 @@ export function useChat({ maxMessages = 500 }: UseChatOptions = {}): UseChatRetu
       setConnectionState("error");
       pollingRef.current = setTimeout(pollMessages, 5000);
     }
-  }, [maxMessages, stopPolling]);
+  }, [maxMessages, stopPolling, apiKey]);
 
   const connect = useCallback(
     async (videoUrl: string) => {
@@ -234,7 +236,7 @@ export function useChat({ maxMessages = 500 }: UseChatOptions = {}): UseChatRetu
         const response = await fetch("/api/youtube/connect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ videoId }),
+          body: JSON.stringify({ videoId, apiKey }),
         });
 
         const result = await response.json();
@@ -264,7 +266,7 @@ export function useChat({ maxMessages = 500 }: UseChatOptions = {}): UseChatRetu
         setConnectionState("error");
       }
     },
-    [disconnect, pollMessages]
+    [disconnect, pollMessages, apiKey]
   );
 
   const clearMessages = useCallback(() => {

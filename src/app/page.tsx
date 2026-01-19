@@ -1,13 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { 
-  Trash2, 
   Maximize,
   MessageSquare,
-  Play,
-  Youtube,
   Users,
-  Clock
+  Clock,
+  RefreshCw
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChatContainer } from "@/components/ChatContainer";
@@ -15,38 +14,65 @@ import { ChatInput } from "@/components/ChatInput";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CustomizationSidebar } from "@/components/CustomizationSidebar";
+import { ChoiceScreen } from "@/components/ChoiceScreen";
+import { StreamPage } from "@/components/stream/StreamPage";
 import { useChat } from "@/lib/hooks/useChat";
 import { useTheme } from "@/lib/hooks/useTheme";
 import { useCustomization } from "@/lib/hooks/useCustomization";
 
 /**
  * Premium Welcome Hero Component
+ * Enhanced with motion.dev spring physics
  */
 function WelcomeHero({ onQuickStart }: { onQuickStart: (url: string) => void }) {
   const { accentColor } = useCustomization();
-  // Sample video URL - replace with a known live stream from the allowed channel
-  const sampleUrl = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
   
   return (
     <motion.div 
       className="flex flex-col items-center justify-center h-full px-8"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ 
+        type: "spring",
+        stiffness: 200,
+        damping: 25,
+      }}
     >
       {/* Glassmorphism Card */}
-      <div 
-        className="relative p-8 rounded-2xl border backdrop-blur-xl max-w-md w-full text-center"
+      <motion.div 
+        className="relative p-8 rounded-3xl border backdrop-blur-xl max-w-md w-full text-center overflow-hidden"
         style={{
           background: 'rgba(255, 255, 255, 0.03)',
           borderColor: 'rgba(255, 255, 255, 0.08)',
-          boxShadow: `0 8px 32px rgba(0, 0, 0, 0.3), 0 0 60px ${accentColor}10`,
+          boxShadow: `0 8px 32px rgba(0, 0, 0, 0.3), 0 0 80px ${accentColor}08`,
         }}
+        whileHover={{ 
+          boxShadow: `0 12px 48px rgba(0, 0, 0, 0.4), 0 0 100px ${accentColor}15`,
+          y: -2,
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
       >
+        {/* Shimmer effect */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none"
+          initial={{ x: "-100%" }}
+          animate={{ x: "200%" }}
+          transition={{ duration: 3, repeat: Infinity, repeatDelay: 5, ease: "linear" }}
+        />
+        
         {/* Accent glow orb */}
-        <div 
-          className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full blur-3xl opacity-40"
+        <motion.div 
+          className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full blur-3xl"
           style={{ backgroundColor: accentColor }}
+          animate={{
+            opacity: [0.2, 0.4, 0.2],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
         />
         
         {/* Icon */}
@@ -55,49 +81,42 @@ function WelcomeHero({ onQuickStart }: { onQuickStart: (url: string) => void }) 
           style={{
             background: `linear-gradient(135deg, ${accentColor}20, ${accentColor}05)`,
             borderColor: `${accentColor}30`,
-            boxShadow: `0 0 30px ${accentColor}20`,
           }}
           animate={{ 
             boxShadow: [
               `0 0 20px ${accentColor}20`,
-              `0 0 40px ${accentColor}30`,
+              `0 0 40px ${accentColor}35`,
               `0 0 20px ${accentColor}20`,
             ]
           }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          whileHover={{ scale: 1.1, rotate: 5 }}
         >
           <MessageSquare className="h-8 w-8" style={{ color: accentColor }} />
         </motion.div>
         
-        <h1 className="text-2xl font-black text-text-v1 mb-2 tracking-tight">
+        <motion.h1 
+          className="text-2xl font-black text-text-v1 mb-2 tracking-tight"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
           Welcome to YT_Chat
-        </h1>
-        <p className="text-sm text-text-v5 mb-6 leading-relaxed">
+        </motion.h1>
+        <motion.p 
+          className="text-sm text-text-v5 mb-6 leading-relaxed"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
           Connect to authorized YouTube live streams and view the chat in real-time with custom styling.
-        </p>
+        </motion.p>
         
-        {/* Quick Start Section */}
-        <div className="space-y-3">
-          <p className="text-[10px] uppercase tracking-widest text-text-v5 font-bold">Quick Start</p>
-          
-          <button
-            onClick={() => onQuickStart(sampleUrl)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              background: `linear-gradient(135deg, ${accentColor}15, ${accentColor}05)`,
-              borderColor: `${accentColor}30`,
-            }}
-          >
-            <Youtube className="h-4 w-4" style={{ color: accentColor }} />
-            <span className="text-sm font-semibold text-text-v3">Try with sample video</span>
-            <Play className="h-3 w-3 fill-current" style={{ color: accentColor }} />
-          </button>
-          
-          <p className="text-[10px] text-text-v5/60">
-            Or paste any authorized live stream URL below
-          </p>
-        </div>
-      </div>
+        {/* Quick Start Section removed */}
+        <p className="text-[10px] text-text-v5/60 mt-4">
+          Paste any authorized live stream URL below to start
+        </p>
+      </motion.div>
     </motion.div>
   );
 }
@@ -140,6 +159,57 @@ function StreamInfoBar({ streamInfo }: { streamInfo: { channelTitle: string; tit
  * Main application layout
  */
 export default function Home() {
+  const [uiVariant, setUiVariant] = useState<"yt_chat" | "yT3_chat" | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load preference from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("yt-chat-ui-variant");
+    if (stored === "yt_chat" || stored === "yT3_chat") {
+      setUiVariant(stored);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Handle choice selection
+  const handleChoice = (variant: "yt_chat" | "yT3_chat") => {
+    localStorage.setItem("yt-chat-ui-variant", variant);
+    setUiVariant(variant);
+  };
+
+  // Reset to choice screen
+  const handleSwitchUI = () => {
+    localStorage.removeItem("yt-chat-ui-variant");
+    setUiVariant(null);
+  };
+
+  // Prevent flash of content before loading
+  if (!isLoaded) {
+    return (
+      <div className="h-screen w-full bg-[#0a0a0a] flex items-center justify-center">
+        <div className="h-8 w-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Show choice screen if no preference
+  if (uiVariant === null) {
+    return <ChoiceScreen onChoice={handleChoice} />;
+  }
+
+  // Show minimal stream UI
+  if (uiVariant === "yt_chat") {
+    return <StreamPage onSwitchUI={handleSwitchUI} />;
+  }
+
+  // Show full yT3_chat UI (current implementation)
+  return <YT3ChatUI onSwitchUI={handleSwitchUI} />;
+}
+
+/**
+ * Full-featured yT3_chat UI (original implementation)
+ */
+function YT3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
   const { theme, toggleTheme } = useTheme();
   
   const { 
@@ -147,12 +217,14 @@ export default function Home() {
     chatWidth,
     maxLoadedMessages,
     updateField,
-    accentColor
+    accentColor,
+    apiKey
   } = useCustomization();
 
-  // No more API key needed - handled server-side
+  // Pass API key if configured (BYOK)
   const { messages, connectionState, error, streamInfo, connect, disconnect, clearMessages } = useChat({
     maxMessages: maxLoadedMessages,
+    apiKey,
   });
 
   const handleQuickStart = async (url: string) => {
@@ -193,7 +265,7 @@ export default function Home() {
                 <StreamInfoBar streamInfo={streamInfo} />
               ) : (
                 <>
-                  <span className="text-sm font-bold text-text-v1 tracking-tight">Active Session</span>
+                  <span className="text-sm font-bold text-text-v1 tracking-tight">yT3 Chat</span>
                   <div className="h-4 w-px bg-card-border" />
                   <span className="text-xs font-medium text-text-v5 px-2 py-1 rounded bg-white/5">
                     {messages.length} messages
@@ -207,14 +279,13 @@ export default function Home() {
               <div className="h-4 w-px bg-card-border mx-2" />
               
               <button 
-                onClick={clearMessages}
-                className="rounded-xl p-2.5 text-text-v5 hover:bg-red-500/10 hover:text-red-400 transition-all active:scale-90"
-                title="Clear Chat"
-                aria-label="Clear all messages"
+                onClick={onSwitchUI}
+                className="rounded-xl p-2.5 text-text-v5 hover:bg-accent/10 hover:text-accent transition-all active:scale-90"
+                title="Switch UI Mode"
+                aria-label="Switch to different UI"
               >
-                <Trash2 className="h-4.5 w-4.5" />
+                <RefreshCw className="h-4.5 w-4.5" />
               </button>
-              <ThemeToggle theme={theme} onToggle={toggleTheme} />
             </div>
           </header>
         )}
@@ -255,7 +326,7 @@ export default function Home() {
                   />
                   {!focusMode && (
                     <p className="text-[11px] text-center text-text-v5/50 font-medium">
-                      YT_Chat {isConnected ? 'connected' : 'ready'}. Accent: <span style={{ color: accentColor }}>{accentColor}</span>
+                      All channels supported with BYOK. Default: @t3dotgg. Accent: <span style={{ color: accentColor }}>{accentColor}</span>
                     </p>
                   )}
                 </div>
