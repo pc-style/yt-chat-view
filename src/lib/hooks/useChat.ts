@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { ChatMessage, ConnectionState, BadgeType } from "@/types/youtube";
+import type { ChatMessage, ConnectionState, BadgeType, MessageType } from "@/types/youtube";
 import { extractVideoId } from "@/lib/youtube";
 
 interface UseChatOptions {
@@ -127,7 +127,7 @@ function transformMessage(msg: ApiMessage): ChatMessage {
     isSuperChat,
     superChatAmount,
     superChatColor,
-    messageType: snippet.type,
+    messageType: snippet.type as MessageType,
   };
 }
 
