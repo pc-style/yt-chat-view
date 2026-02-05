@@ -1,9 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Pause, Play, FastForward, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Pause, Play, FastForward, RotateCcw, ChevronDown, Zap } from "lucide-react";
 import type { PlaybackSpeed } from "@/lib/hooks/useDemoChat";
-import { springs } from "@/lib/motion";
 
 interface DemoControlsProps {
   speed: PlaybackSpeed;
@@ -22,6 +22,7 @@ const SPEED_OPTIONS: PlaybackSpeed[] = [1, 2, 5];
 
 /**
  * Demo playback controls with speed selection, play/pause, and progress indicator
+ * Auto-collapsed by default, expandable on click
  */
 export function DemoControls({
   speed,
@@ -34,18 +35,16 @@ export function DemoControls({
   accentColor,
   compact = false,
 }: DemoControlsProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const progressPercent = Math.round(progress * 100);
 
   if (compact) {
     return (
       <div className="flex items-center gap-2">
         {/* Play/Pause */}
-        <motion.button
+        <button
           onClick={isPaused ? resume : pause}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          transition={springs.snappy}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors active:scale-90"
           aria-label={isPaused ? "Resume demo" : "Pause demo"}
         >
           {isPaused ? (
@@ -53,7 +52,7 @@ export function DemoControls({
           ) : (
             <Pause className="h-3.5 w-3.5 text-white/60" />
           )}
-        </motion.button>
+        </button>
 
         {/* Speed indicator */}
         <button
@@ -70,15 +69,12 @@ export function DemoControls({
 
         {/* Mini progress bar */}
         <div className="relative w-12 h-1 bg-white/10 rounded-full overflow-hidden">
-          <motion.div
-            className="absolute inset-y-0 left-0 rounded-full"
+          <div
+            className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
             style={{ 
               backgroundColor: accentColor,
               width: `${progressPercent}%`,
             }}
-            initial={false}
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.1 }}
           />
         </div>
 
@@ -93,112 +89,115 @@ export function DemoControls({
     );
   }
 
+  // Collapsible full controls
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-3 p-4 rounded-xl bg-white/5 border border-white/10"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
-          Demo Controls
-        </span>
-        {loopCount > 1 && (
-          <motion.span 
-            key={loopCount}
-            initial={{ scale: 1.2, opacity: 0.5 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-1 text-[10px] text-white/40"
-          >
-            <RotateCcw className="h-3 w-3" />
-            Loop {loopCount}
-          </motion.span>
-        )}
-      </div>
-
-      {/* Progress bar */}
-      <div className="space-y-1.5">
-        <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
-          <motion.div
-            className="absolute inset-y-0 left-0 rounded-full"
-            style={{ backgroundColor: accentColor }}
-            initial={false}
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.1 }}
-          />
-          {/* Animated shimmer on progress */}
-          <motion.div
-            className="absolute inset-y-0 w-8 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-            animate={{ 
-              x: ["-32px", "100%"],
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity, 
-              ease: "linear",
-              repeatDelay: 1,
-            }}
-          />
-        </div>
-        <div className="flex justify-between text-[10px] text-white/30">
-          <span>{progressPercent}%</span>
-          <span>{isPaused ? "Paused" : "Playing"}</span>
-        </div>
-      </div>
-
-      {/* Controls row */}
-      <div className="flex items-center justify-between">
-        {/* Play/Pause button */}
-        <motion.button
-          onClick={isPaused ? resume : pause}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          transition={springs.snappy}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
-          style={{
-            backgroundColor: isPaused ? `${accentColor}20` : "rgba(255,255,255,0.05)",
-            border: `1px solid ${isPaused ? `${accentColor}40` : "rgba(255,255,255,0.1)"}`,
-          }}
-          aria-label={isPaused ? "Resume demo playback" : "Pause demo playback"}
-        >
-          {isPaused ? (
-            <>
-              <Play className="h-4 w-4 fill-current" style={{ color: accentColor }} />
-              <span className="text-sm font-medium" style={{ color: accentColor }}>Resume</span>
-            </>
-          ) : (
-            <>
-              <Pause className="h-4 w-4 text-white/60" />
-              <span className="text-sm font-medium text-white/60">Pause</span>
-            </>
+    <div className="w-full">
+      {/* Collapsed toggle bar */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-white/[0.07] border border-white/10 transition-colors group"
+      >
+        <div className="flex items-center gap-2">
+          <Zap className="h-3.5 w-3.5" style={{ color: accentColor }} />
+          <span className="text-xs font-semibold text-white/60">Demo Mode</span>
+          <span className="text-[10px] text-white/30">{speed}x</span>
+          {loopCount > 1 && (
+            <span className="flex items-center gap-0.5 text-[10px] text-white/30">
+              <RotateCcw className="h-2.5 w-2.5" />
+              {loopCount}
+            </span>
           )}
-        </motion.button>
-
-        {/* Speed selector */}
-        <div className="flex items-center gap-1">
-          <FastForward className="h-3.5 w-3.5 text-white/30 mr-1" />
-          {SPEED_OPTIONS.map((s) => (
-            <motion.button
-              key={s}
-              onClick={() => setSpeed(s)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={springs.snappy}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-              style={{
-                backgroundColor: speed === s ? `${accentColor}25` : "transparent",
-                border: `1px solid ${speed === s ? `${accentColor}50` : "rgba(255,255,255,0.1)"}`,
-                color: speed === s ? accentColor : "rgba(255,255,255,0.4)",
-              }}
-              aria-label={`Set playback speed to ${s}x`}
-              aria-pressed={speed === s}
-            >
-              {s}x
-            </motion.button>
-          ))}
         </div>
-      </div>
-    </motion.div>
+        
+        <div className="flex items-center gap-2">
+          {/* Inline play/pause */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              isPaused ? resume() : pause();
+            }}
+            className="p-1 rounded bg-white/5 hover:bg-white/10 transition-colors"
+            aria-label={isPaused ? "Resume" : "Pause"}
+          >
+            {isPaused ? (
+              <Play className="h-3 w-3 fill-current" style={{ color: accentColor }} />
+            ) : (
+              <Pause className="h-3 w-3 text-white/50" />
+            )}
+          </button>
+          
+          {/* Mini progress */}
+          <div className="relative w-16 h-1 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
+              style={{ backgroundColor: accentColor, width: `${progressPercent}%` }}
+            />
+          </div>
+          
+          <ChevronDown 
+            className={`h-3.5 w-3.5 text-white/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+          />
+        </div>
+      </button>
+
+      {/* Expanded controls */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2 pb-1 px-1 flex items-center justify-between gap-3">
+              {/* Play/Pause button */}
+              <button
+                onClick={isPaused ? resume : pause}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors active:scale-95"
+                style={{
+                  backgroundColor: isPaused ? `${accentColor}20` : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${isPaused ? `${accentColor}40` : "rgba(255,255,255,0.1)"}`,
+                }}
+                aria-label={isPaused ? "Resume demo playback" : "Pause demo playback"}
+              >
+                {isPaused ? (
+                  <>
+                    <Play className="h-3.5 w-3.5 fill-current" style={{ color: accentColor }} />
+                    <span className="text-xs font-medium" style={{ color: accentColor }}>Resume</span>
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-3.5 w-3.5 text-white/60" />
+                    <span className="text-xs font-medium text-white/60">Pause</span>
+                  </>
+                )}
+              </button>
+
+              {/* Speed selector */}
+              <div className="flex items-center gap-1">
+                <FastForward className="h-3 w-3 text-white/30 mr-1" />
+                {SPEED_OPTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSpeed(s)}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95"
+                    style={{
+                      backgroundColor: speed === s ? `${accentColor}25` : "transparent",
+                      border: `1px solid ${speed === s ? `${accentColor}50` : "rgba(255,255,255,0.1)"}`,
+                      color: speed === s ? accentColor : "rgba(255,255,255,0.4)",
+                    }}
+                    aria-label={`Set playback speed to ${s}x`}
+                    aria-pressed={speed === s}
+                  >
+                    {s}x
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

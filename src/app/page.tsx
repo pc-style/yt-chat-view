@@ -401,10 +401,10 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
               
               {/* Premium Anchored Input Bar */}
               <div 
-                className={`w-full px-8 border-t border-card-border backdrop-blur-xl transition-all duration-300 ${focusMode ? "py-4 opacity-0 hover:opacity-100" : "py-8"}`}
+                className={`w-full px-6 border-t border-card-border backdrop-blur-xl transition-all duration-300 ${focusMode ? "py-3 opacity-0 hover:opacity-100" : "py-4"}`}
                 style={{ backgroundColor: 'rgba(var(--background), 0.95)' }}
               >
-                <div className="max-w-3xl mx-auto flex flex-col gap-4">
+                <div className="max-w-3xl mx-auto flex flex-col gap-2">
                   {/* Demo Controls - shown when in demo mode and not in focus mode */}
                   {isDemo && demoControls && !focusMode && (
                     <DemoControls
@@ -420,31 +420,26 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
                     isConnecting={isConnecting}
                   />
                   {!focusMode && (
-                    <div className="flex flex-col gap-1 text-center">
-                      <p className="text-[11px] text-text-v5/50 font-medium">
-                        All channels supported with BYOK. Default: @t3dotgg. Accent: <span style={{ color: accentColor }}>{accentColor}</span>
-                      </p>
-                      <p className="text-[10px] text-text-v5/40">
-                        Questions, bugs, or feature requests?{" "}
-                        <a 
-                          href="https://x.com/pcstyle53" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-text-v4 hover:text-accent transition-colors font-medium"
-                        >
-                          @pcstyle53 on X
-                        </a>
-                        {" "}&middot;{" "}
-                        <a 
-                          href="https://github.com/pc-style/yt-chat-view" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-text-v4 hover:text-accent transition-colors font-medium"
-                        >
-                          GitHub
-                        </a>
-                      </p>
-                    </div>
+                    <p className="text-[10px] text-text-v5/40 text-center">
+                      Questions, bugs, or feature requests?{" "}
+                      <a 
+                        href="https://x.com/pcstyle53" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-text-v4 hover:text-accent transition-colors"
+                      >
+                        @pcstyle53
+                      </a>
+                      {" · "}
+                      <a 
+                        href="https://github.com/pc-style/yt-chat-view" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-text-v4 hover:text-accent transition-colors"
+                      >
+                        GitHub
+                      </a>
+                    </p>
                   )}
                 </div>
               </div>
