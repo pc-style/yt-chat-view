@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# yT3 Chat
+
+A customizable YouTube Live Chat viewer built with Next.js. Two UI modes: full-featured dashboard (yT3 Chat) and minimal streamer-mode (yt_chat) for OBS overlays.
+
+## Features
+
+- **Two UI Modes**: Choose between minimal OBS-ready overlay or full-featured dashboard
+- **Real-time Chat**: Connect to any YouTube Live stream
+- **Demo Mode**: Try it out without using API quota
+- **Customizable**: Themes, colors, font sizes, layouts, and more
+- **BYOK (Bring Your Own Key)**: Use your own YouTube API key for unrestricted access
+- **Responsive**: Works on desktop and mobile
+- **Virtualized**: Handles high-volume chats efficiently
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- [Bun](https://bun.sh/) (recommended) or Node.js 18+
+- YouTube Data API v3 key (optional - default restricted to @t3dotgg)
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone the repository
+git clone https://github.com/pc-style/yt-chat-view.git
+cd yt-chat-view
+
+# Install dependencies
+bun install
+
+# Start the development server
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a `.env.local` file in the root directory:
 
-## Learn More
+```bash
+# Required for unrestricted channel access
+YOUTUBE_API_KEY=your_youtube_api_key
 
-To learn more about Next.js, take a look at the following resources:
+# Optional: Redis caching (Upstash)
+UPSTASH_REDIS_REST_URL=your_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_redis_token
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Usage
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Connecting to a Stream
 
-## Deploy on Vercel
+1. Open the app and choose your preferred UI mode
+2. Paste a YouTube Live URL in the input field
+3. Click Connect to start viewing chat
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Supported URL formats:
+- `https://youtube.com/watch?v=VIDEO_ID`
+- `https://youtu.be/VIDEO_ID`
+- `https://youtube.com/live/VIDEO_ID`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Demo Mode
+
+Click "Try Demo Mode" to see the chat in action without using any API quota. Great for testing customization options.
+
+### BYOK Mode
+
+Without an API key, the app is restricted to @t3dotgg streams only. To connect to any channel:
+1. Get a YouTube Data API v3 key from [Google Cloud Console](https://console.cloud.google.com/)
+2. Add it in the Settings panel or set `YOUTUBE_API_KEY` environment variable
+
+## Tech Stack
+
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
+- **Language**: TypeScript
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Virtualization**: [@tanstack/react-virtual](https://tanstack.com/virtual)
+
+## Scripts
+
+```bash
+bun run dev        # Start development server
+bun run build      # Build for production
+bun run start      # Start production server
+bun run lint       # Run ESLint
+bun run typecheck  # Run TypeScript type checking
+```
+
+## Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## Links
+
+- **Live Demo**: [yt.pcstyle.dev](https://yt.pcstyle.dev)
+- **Issues & Feature Requests**: [GitHub Issues](https://github.com/pc-style/yt-chat-view/issues)
+- **Questions**: [@pcstyle53 on X](https://x.com/pcstyle53)
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.

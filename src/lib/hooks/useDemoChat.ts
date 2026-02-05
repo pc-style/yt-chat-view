@@ -14,6 +14,8 @@ interface UseDemoChatOptions {
   maxMessages?: number;
   speed?: PlaybackSpeed;
   loop?: boolean;
+  /** Add slight randomization to message timing for natural feel */
+  naturalTiming?: boolean;
 }
 
 interface UseDemoChatReturn {
@@ -30,6 +32,23 @@ interface UseDemoChatReturn {
   isPaused: boolean;
   pause: () => void;
   resume: () => void;
+  /** Progress through demo (0-1) */
+  progress: number;
+  /** Current loop iteration (1-based) */
+  loopCount: number;
+  /** Total duration of one demo loop in ms (adjusted for speed) */
+  totalDuration: number;
+  /** Time elapsed in current loop in ms */
+  elapsed: number;
+}
+
+/**
+ * Add random jitter to timing for more natural message flow
+ * Returns a value between -15% and +15% of the delay
+ */
+function addTimingJitter(delay: number): number {
+  const jitterPercent = (Math.random() - 0.5) * 0.3; // -15% to +15%
+  return Math.max(0, delay * (1 + jitterPercent));
 }
 
 /**
@@ -40,6 +59,7 @@ export function useDemoChat({
   maxMessages = 500,
   speed: initialSpeed = 1,
   loop = true,
+  naturalTiming = true,
 }: UseDemoChatOptions = {}): UseDemoChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
@@ -47,15 +67,43 @@ export function useDemoChat({
   const [streamInfo, setStreamInfo] = useState<typeof DEMO_STREAM_INFO | null>(null);
   const [speed, setSpeed] = useState<PlaybackSpeed>(initialSpeed);
   const [isPaused, setIsPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [loopCount, setLoopCount] = useState(1);
+  const [elapsed, setElapsed] = useState(0);
 
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const startTimeRef = useRef<number>(0);
   const pausedAtRef = useRef<number>(0);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Total duration adjusted for current speed
+  const totalDuration = DEMO_DURATION_MS / speed;
 
   const clearTimeouts = useCallback(() => {
     timeoutsRef.current.forEach(clearTimeout);
     timeoutsRef.current = [];
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
   }, []);
+
+  // Start progress tracking interval
+  const startProgressTracking = useCallback(() => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    
+    progressIntervalRef.current = setInterval(() => {
+      if (startTimeRef.current > 0) {
+        const currentElapsed = Date.now() - startTimeRef.current;
+        const currentDuration = DEMO_DURATION_MS / speed;
+        const currentProgress = Math.min(1, currentElapsed / currentDuration);
+        setElapsed(currentElapsed);
+        setProgress(currentProgress);
+      }
+    }, 100); // Update every 100ms for smooth progress
+  }, [speed]);
 
   const disconnect = useCallback(() => {
     clearTimeouts();
@@ -64,17 +112,29 @@ export function useDemoChat({
     startTimeRef.current = 0;
     pausedAtRef.current = 0;
     setIsPaused(false);
+    setProgress(0);
+    setLoopCount(1);
+    setElapsed(0);
   }, [clearTimeouts]);
 
-  const scheduleMessages = useCallback((fromOffset = 0) => {
+  const scheduleMessages = useCallback((fromOffset = 0, isNewLoop = false) => {
     clearTimeouts();
+    
+    if (isNewLoop) {
+      setLoopCount((prev) => prev + 1);
+    }
     
     const demoMessages = getDemoMessagesWithDelays();
     const now = Date.now();
     startTimeRef.current = now - fromOffset;
 
+    // Start progress tracking
+    startProgressTracking();
+
     demoMessages.forEach(({ message, delay }) => {
-      const adjustedDelay = delay / speed;
+      // Apply natural timing jitter if enabled
+      const jitteredDelay = naturalTiming ? addTimingJitter(delay) : delay;
+      const adjustedDelay = jitteredDelay / speed;
       const targetTime = adjustedDelay - fromOffset;
       
       if (targetTime > 0) {
@@ -102,12 +162,14 @@ export function useDemoChat({
       if (loopDelay > 0) {
         const loopTimeout = setTimeout(() => {
           setMessages([]); // Clear for fresh loop
-          scheduleMessages(0);
+          setProgress(0);
+          setElapsed(0);
+          scheduleMessages(0, true); // true = new loop
         }, loopDelay);
         timeoutsRef.current.push(loopTimeout);
       }
     }
-  }, [speed, maxMessages, loop, clearTimeouts]);
+  }, [speed, maxMessages, loop, naturalTiming, clearTimeouts, startProgressTracking]);
 
   const connect = useCallback(async () => {
     disconnect();
@@ -119,6 +181,7 @@ export function useDemoChat({
     setStreamInfo(DEMO_STREAM_INFO);
     setConnectionState("connected");
     setMessages([]);
+    setLoopCount(1);
     scheduleMessages(0);
   }, [disconnect, scheduleMessages]);
 
@@ -138,14 +201,15 @@ export function useDemoChat({
     if (connectionState !== "connected" || !isPaused) return;
     
     setIsPaused(false);
-    scheduleMessages(pausedAtRef.current * speed); // Adjust for speed
-  }, [connectionState, isPaused, scheduleMessages, speed]);
+    // pausedAtRef is already in "real time" (not speed-adjusted), pass directly
+    scheduleMessages(pausedAtRef.current);
+  }, [connectionState, isPaused, scheduleMessages]);
 
   // Restart scheduling when speed changes
   useEffect(() => {
     if (connectionState === "connected" && !isPaused) {
-      const elapsed = Date.now() - startTimeRef.current;
-      scheduleMessages(elapsed / speed); // Convert to base time
+      const elapsedTime = Date.now() - startTimeRef.current;
+      scheduleMessages(elapsedTime / speed); // Convert to base time
     }
   }, [speed, connectionState, isPaused, scheduleMessages]);
 
@@ -170,5 +234,9 @@ export function useDemoChat({
     isPaused,
     pause,
     resume,
+    progress,
+    loopCount,
+    totalDuration,
+    elapsed,
   };
 }

@@ -6,7 +6,7 @@ const CUSTOMIZATION_STORAGE = "yt-chat-customization-v4";
 
 export type ChatStyle = "compact" | "comfy";
 export type ThemePreset = "original" | "dark" | "oled" | "light" | "creamy";
-export type FontFamily = "system" | "inter" | "mono" | "serif";
+export type FontFamily = "system" | "geist" | "inter" | "mono" | "serif";
 export type BorderRadius = "none" | "small" | "medium" | "large" | "full";
 export type MessageAlign = "left" | "center";
 export type SidebarPosition = "left" | "right";
@@ -55,7 +55,7 @@ const DEFAULT_STATE: CustomizationState = {
   fontSize: 16,
   sidebarOpacity: 95,
   
-  fontFamily: "system",
+  fontFamily: "geist", // Default to Geist (Vercel's font)
   
   isSidebarCollapsed: false,
   focusMode: false,
@@ -166,9 +166,10 @@ const THEMES: Record<ThemePreset, {
 
 const FONT_FAMILIES: Record<FontFamily, string> = {
   system: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  geist: "var(--font-geist), system-ui, sans-serif",
   inter: "var(--font-inter), system-ui, sans-serif",
-  mono: "var(--font-mono), monospace",
-  serif: "'Georgia', 'Times New Roman', serif",
+  mono: "var(--font-geist-mono), var(--font-jetbrains-mono), ui-monospace, monospace",
+  serif: "Georgia, 'Times New Roman', serif",
 };
 
 const BORDER_RADII: Record<BorderRadius, string> = {

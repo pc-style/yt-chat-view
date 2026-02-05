@@ -121,6 +121,7 @@ export function ChatContainer({ messages }: ChatContainerProps) {
         <button
           onClick={() => virtualizer.scrollToIndex(messages.length - 1, { align: "end", behavior: "smooth" })}
           className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-bold text-white shadow-2xl shadow-accent/40 animate-fade-in active:scale-95 hover:brightness-110 transition-all"
+          aria-label={`Scroll to ${newMessageCount} new messages`}
         >
           <ArrowDown className="h-4 w-4" />
           {newMessageCount} new messages

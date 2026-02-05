@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo, useMemo } from "react";
 import Image from "next/image";
 import { Badge } from "./Badge";
 import type { ChatMessage as ChatMessageType } from "@/types/youtube";
@@ -10,59 +10,83 @@ interface ChatMessageProps {
   message: ChatMessageType;
 }
 
+/** Username color palette */
+const USERNAME_COLORS = [
+  "text-blue-400",
+  "text-rose-400",
+  "text-violet-400",
+  "text-sky-400",
+  "text-indigo-400",
+  "text-cyan-400",
+  "text-fuchsia-400",
+  "text-pink-400",
+] as const;
+
+/** Memoized color cache to avoid recalculating */
+const colorCache = new Map<string, string>();
+
 /**
- * Get username color based on author info
+ * Get username color based on author info (memoized)
  */
 function getUsernameColor(channelId: string, badges: ChatMessageType["badges"]): string {
   if (badges.includes("owner")) return "text-amber-400";
   if (badges.includes("moderator")) return "text-emerald-400";
   if (badges.includes("member")) return "text-accent";
 
-  const colors = [
-    "text-blue-400",
-    "text-rose-400",
-    "text-violet-400",
-    "text-sky-400",
-    "text-indigo-400",
-    "text-cyan-400",
-    "text-fuchsia-400",
-    "text-pink-400",
-  ];
+  // Check cache first
+  const cacheKey = channelId;
+  if (colorCache.has(cacheKey)) {
+    return colorCache.get(cacheKey)!;
+  }
 
   let hash = 0;
   for (let i = 0; i < channelId.length; i++) {
     hash = channelId.charCodeAt(i) + ((hash << 5) - hash);
   }
 
-  return colors[Math.abs(hash) % colors.length];
+  const color = USERNAME_COLORS[Math.abs(hash) % USERNAME_COLORS.length];
+  colorCache.set(cacheKey, color);
+  return color;
 }
+
+/** Border radius mapping */
+const RADIUS_MAP: Record<string, string> = {
+  none: '0px',
+  small: '4px',
+  medium: '8px',
+  large: '12px',
+  full: '16px',
+};
 
 /**
  * Chat Message - Supports "Comfy" and "Compact" modes
  * Compact: Single line with inline username and message
  * Comfy: Full layout with stacked username and message
+ * 
+ * Memoized to prevent unnecessary re-renders when parent updates
  */
-export function ChatMessage({ message }: ChatMessageProps) {
+export const ChatMessage = memo(function ChatMessage({ message }: ChatMessageProps) {
   const [imgError, setImgError] = useState(false);
   const { chatStyle, showAvatars, showTimestamps, showBadges, messageAnimations, fontSize, borderRadius } = useCustomization();
-  const usernameColor = getUsernameColor(message.authorChannelId, message.badges);
+  
+  // Memoize derived values
+  const usernameColor = useMemo(
+    () => getUsernameColor(message.authorChannelId, message.badges),
+    [message.authorChannelId, message.badges]
+  );
   const isCompact = chatStyle === "compact";
+  const itemRadius = RADIUS_MAP[borderRadius] || '8px';
 
-  // Dynamic styles from customization
-  const messageStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-family)',
+  // Memoize style object to prevent recreation
+  const messageStyle = useMemo<React.CSSProperties>(() => ({
     fontSize: `${fontSize}px`,
     lineHeight: `${fontSize * 1.5}px`,
-  };
+  }), [fontSize]);
 
-  const radiusMap: Record<string, string> = {
-    none: '0px',
-    small: '4px',
-    medium: '8px',
-    large: '12px',
-    full: '16px',
-  };
-  const itemRadius = radiusMap[borderRadius] || '8px';
+  // Format timestamp from message
+  const formattedTime = useMemo(() => {
+    return message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }, [message.timestamp]);
 
   // Compact mode: Single line inline layout
   if (isCompact) {
@@ -82,7 +106,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {/* Timestamp - always visible in compact */}
         {showTimestamps && (
           <span className="text-[9px] font-mono text-text-v5/50 tabular-nums shrink-0">
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formattedTime}
           </span>
         )}
 
@@ -141,7 +165,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   // Comfy mode: Full stacked layout
   return (
     <article
-      className={`group relative flex gap-3 px-6 py-2.5 transition-all hover:bg-surface-muted border-l-2 border-transparent hover:border-accent/40 ${messageAnimations ? "animate-fade-in" : ""} ${message.isSuperChat ? "my-2" : ""}`}
+      className={`group relative flex gap-3 px-4 sm:px-6 py-2 transition-all hover:bg-surface-muted border-l-2 border-transparent hover:border-accent/40 ${messageAnimations ? "animate-fade-in" : ""} ${message.isSuperChat ? "my-1.5" : ""}`}
       style={{
         borderRadius: itemRadius,
         ...(message.isSuperChat && message.superChatColor
@@ -154,10 +178,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
     >
       {/* Avatar */}
       {showAvatars && (
-        <div className="flex-shrink-0 pt-1">
-          <div className="relative h-9 w-9 overflow-hidden rounded-full border border-border group-hover:border-accent/30 transition-colors shadow-lg shadow-black/20 flex items-center justify-center bg-white/5">
+        <div className="flex-shrink-0">
+          <div className="relative h-8 w-8 sm:h-9 sm:w-9 overflow-hidden rounded-full border border-border group-hover:border-accent/30 transition-colors shadow-lg shadow-black/20 flex items-center justify-center bg-white/5">
             {imgError ? (
-              <span className="text-sm font-black text-text-v4 uppercase">
+              <span className="text-xs sm:text-sm font-black text-text-v4 uppercase">
                 {message.authorName.charAt(0)}
               </span>
             ) : (
@@ -175,41 +199,41 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
 
       <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Badges */}
-          {showBadges && message.badges.length > 0 && (
-            <div className="flex gap-1">
-              {message.badges.map((badge) => (
-                <Badge key={badge} type={badge} />
-              ))}
-            </div>
-          )}
-
-          {/* Super Chat */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          {/* Super Chat - Show first for visibility */}
           {message.isSuperChat && message.superChatAmount && (
             <span
-              className="rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-sm"
+              className="rounded-full px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-white shadow-sm shrink-0"
               style={{ backgroundColor: message.superChatColor }}
             >
               {message.superChatAmount}
             </span>
           )}
 
+          {/* Badges */}
+          {showBadges && message.badges.length > 0 && (
+            <div className="flex gap-0.5 sm:gap-1 shrink-0">
+              {message.badges.map((badge) => (
+                <Badge key={badge} type={badge} />
+              ))}
+            </div>
+          )}
+
           {/* Username */}
-          <span className={`font-bold tracking-tight text-sm ${usernameColor}`}>
+          <span className={`font-bold tracking-tight text-xs sm:text-sm ${usernameColor} break-all`}>
             {message.authorName}
           </span>
           
           {/* Timestamp */}
           {showTimestamps && (
-            <span className="text-[10px] uppercase font-bold text-text-v5/40">
-              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <span className="text-[9px] sm:text-[10px] uppercase font-bold text-text-v5/40 shrink-0">
+              {formattedTime}
             </span>
           )}
         </div>
 
         {/* Message Body */}
-        <p className="text-text-v2 font-medium" style={messageStyle}>
+        <p className="text-text-v2 font-medium break-words" style={messageStyle}>
           {message.message}
         </p>
       </div>
@@ -222,4 +246,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
     </article>
   );
-}
+});
+
+// Display name for debugging
+ChatMessage.displayName = 'ChatMessage';

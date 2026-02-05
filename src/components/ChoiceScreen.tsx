@@ -82,7 +82,7 @@ export function ChoiceScreen({ onChoice }: ChoiceScreenProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ ...springs.bouncy, delay: 0.05 }}
+            transition={{ ...springs.snappy, delay: 0.05 }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06] mb-8"
           >
             <Play className="h-3 w-3 text-red-400 fill-red-400" />
@@ -237,14 +237,36 @@ export function ChoiceScreen({ onChoice }: ChoiceScreenProps) {
         </div>
 
         {/* Footer */}
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7, duration: 0.6 }}
-          className="text-[11px] text-white/20 font-medium"
+          className="flex flex-col gap-1 text-center"
         >
-          Switch anytime from settings
-        </motion.p>
+          <p className="text-[11px] text-white/20 font-medium">
+            Switch anytime from settings
+          </p>
+          <p className="text-[10px] text-white/15">
+            Questions or bugs?{" "}
+            <a 
+              href="https://x.com/pcstyle53" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-white/30 hover:text-white/60 transition-colors"
+            >
+              @pcstyle53 on X
+            </a>
+            {" "}&middot;{" "}
+            <a 
+              href="https://github.com/pc-style/yt-chat-view" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-white/30 hover:text-white/60 transition-colors"
+            >
+              GitHub
+            </a>
+          </p>
+        </motion.div>
       </div>
     </div>
   );

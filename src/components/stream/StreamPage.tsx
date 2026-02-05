@@ -20,6 +20,7 @@ import { StreamChatMessage } from "./StreamChatMessage";
 import { useChat } from "@/lib/hooks/useChat";
 import { useDemoChat } from "@/lib/hooks/useDemoChat";
 import { useCustomization } from "@/lib/hooks/useCustomization";
+import { DemoControls } from "@/components/DemoControls";
 import { springs } from "@/lib/motion";
 
 interface StreamPageProps {
@@ -57,6 +58,17 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
 
   const chat = isDemo ? demoChat : liveChat;
   const { messages, connectionState, streamInfo, disconnect, clearMessages } = chat;
+
+  // Extract demo-specific controls
+  const demoControls = isDemo ? {
+    speed: demoChat.speed,
+    setSpeed: demoChat.setSpeed,
+    isPaused: demoChat.isPaused,
+    pause: demoChat.pause,
+    resume: demoChat.resume,
+    progress: demoChat.progress,
+    loopCount: demoChat.loopCount,
+  } : null;
 
   const isConnected = connectionState === "connected";
   const isConnecting = connectionState === "connecting";
@@ -107,20 +119,11 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
 
   return (
     <div className="h-screen w-full bg-[#0a0a0a] flex flex-col overflow-hidden relative">
-      {/* Subtle animated background */}
+      {/* Subtle static background glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <motion.div
-          className="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 rounded-full blur-[150px]"
-          style={{ backgroundColor: `${accentColor}10` }}
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+        <div
+          className="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 rounded-full blur-[150px] opacity-30"
+          style={{ backgroundColor: `${accentColor}15` }}
         />
       </div>
 
@@ -174,6 +177,14 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
 
               {/* Visuals */}
               <div className="space-y-6">
+                {/* Demo Controls - only shown when in demo mode */}
+                {isDemo && demoControls && (
+                  <DemoControls
+                    {...demoControls}
+                    accentColor={accentColor}
+                  />
+                )}
+
                 <div className="space-y-3">
                   <div className="flex justify-between items-center text-[10px] font-bold text-white/30 uppercase tracking-widest">
                     <span>Font Size</span>
@@ -195,6 +206,8 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
                         onClick={() => updateField("accentColor", c)}
                         className={`w-6 h-6 rounded-full border-2 transition-all ${accentColor === c ? 'border-white scale-110 shadow-lg shadow-white/10' : 'border-transparent opacity-50 hover:opacity-100'}`}
                         style={{ backgroundColor: c }}
+                        aria-label={`Select accent color ${c}`}
+                        aria-pressed={accentColor === c}
                       />
                     ))}
                   </div>
@@ -224,19 +237,10 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
             transition={springs.snappy}
           >
             <motion.div 
-              className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors"
-              style={{ backgroundColor: accentColor }}
-              animate={isConnected ? {
-                boxShadow: [
-                  `0 0 0px ${accentColor}00`,
-                  `0 0 20px ${accentColor}80`,
-                  `0 0 0px ${accentColor}00`,
-                ],
-              } : {}}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
+              className="h-8 w-8 rounded-lg flex items-center justify-center transition-all"
+              style={{ 
+                backgroundColor: accentColor,
+                boxShadow: isConnected ? `0 0 16px ${accentColor}60` : "none"
               }}
             >
               <Youtube className="h-4 w-4 text-white" />
@@ -256,26 +260,20 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
             >
               {isConnected && isDemo ? (
                 <>
-                  <motion.div
-                    animate={{ 
-                      scale: [1, 1.15, 1],
-                      rotate: [0, 5, -5, 0],
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <Zap className="h-4 w-4" style={{ color: accentColor }} />
-                  </motion.div>
+                  <Zap className="h-4 w-4" style={{ color: accentColor }} />
                   <span className="font-bold" style={{ color: accentColor }}>Demo</span>
-                  <span className="text-white/40 hidden sm:inline">Simulated Chat</span>
+                  {/* Compact demo controls in header */}
+                  {demoControls && (
+                    <DemoControls
+                      {...demoControls}
+                      accentColor={accentColor}
+                      compact
+                    />
+                  )}
                 </>
               ) : isConnected ? (
                 <>
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <Wifi className="h-4 w-4 text-green-400" />
-                  </motion.div>
+                  <Wifi className="h-4 w-4 text-green-400" />
                   <span className="text-green-400 font-medium">Live</span>
                   {streamInfo && (
                     <motion.span 
@@ -395,27 +393,9 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
                 className="flex flex-col items-center justify-center h-full text-center py-20"
               >
                 <motion.div
-                  className="mb-6 h-24 w-24 rounded-3xl bg-gradient-to-br from-red-500/20 to-red-500/5 border border-red-500/20 flex items-center justify-center relative overflow-hidden"
-                  animate={{
-                    boxShadow: [
-                      "0 0 0px rgba(239,68,68,0)",
-                      "0 0 40px rgba(239,68,68,0.2)",
-                      "0 0 0px rgba(239,68,68,0)",
-                    ],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                  className="mb-6 h-24 w-24 rounded-3xl bg-gradient-to-br from-red-500/20 to-red-500/5 border border-red-500/20 flex items-center justify-center"
                 >
-                  {/* Shimmer effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                    animate={{ x: ["-100%", "100%"] }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                  />
-                  <Youtube className="h-12 w-12 text-red-400/60 relative z-10" />
+                  <Youtube className="h-12 w-12 text-red-400/60" />
                 </motion.div>
                 <motion.h2 
                   initial={{ opacity: 0, y: 10 }}
@@ -472,7 +452,7 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
               initial={{ opacity: 0, y: 30, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 30, scale: 0.8 }}
-              transition={springs.bouncy}
+              transition={springs.snappy}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
@@ -480,12 +460,7 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
               }}
               className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white shadow-xl shadow-red-500/30 hover:bg-red-600 transition-colors"
             >
-              <motion.div
-                animate={{ y: [0, 3, 0] }}
-                transition={{ duration: 1, repeat: Infinity }}
-              >
-                <ArrowDown className="h-4 w-4" />
-              </motion.div>
+              <ArrowDown className="h-4 w-4" />
               New messages
             </motion.button>
           )}
@@ -553,6 +528,33 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
             )}
           </AnimatePresence>
         </form>
+        
+        {/* Footer Links */}
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-[10px] text-white/30 text-center mt-3"
+        >
+          Questions or bugs?{" "}
+          <a 
+            href="https://x.com/pcstyle53" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-white/50 hover:text-white transition-colors"
+          >
+            @pcstyle53 on X
+          </a>
+          {" "}&middot;{" "}
+          <a 
+            href="https://github.com/pc-style/yt-chat-view" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-white/50 hover:text-white transition-colors"
+          >
+            GitHub
+          </a>
+        </motion.p>
       </motion.div>
     </div>
   );

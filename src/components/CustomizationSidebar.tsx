@@ -1,28 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { 
   Palette, 
   Layout, 
   ChevronLeft, 
   ChevronRight,
+  ChevronDown,
   Zap,
   Maximize,
   Eye,
   Check,
   MessageSquare,
   Type,
-  Sparkles,
-  AlignLeft,
-  AlignCenter,
-  PanelLeft,
-  PanelRight,
-  Circle,
-  Square,
-  RectangleHorizontal,
   Key,
-  Info
+  Settings
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { 
   useCustomization, 
   ChatStyle, 
@@ -31,18 +24,131 @@ import {
   BorderRadius
 } from "@/lib/hooks/useCustomization";
 
+// Presets
+const colorPresets = ["#CA0377", "#9147ff", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
+const themePresets: ThemePreset[] = ["original", "dark", "oled", "light", "creamy"];
+const fontPresets: { value: FontFamily; label: string }[] = [
+  { value: "geist", label: "Geist" },
+  { value: "inter", label: "Inter" },
+  { value: "system", label: "System" },
+  { value: "mono", label: "Mono" },
+];
+const radiusPresets: BorderRadius[] = ["none", "small", "medium", "large"];
+
 /**
- * Advanced Sidebar for UI customization
- * Premium polish with Framer Motion animations
+ * Collapsible Section - lightweight, CSS-only animation
  */
-export function CustomizationSidebar() {
+function Section({ 
+  title, 
+  icon: Icon, 
+  children, 
+  defaultOpen = true 
+}: { 
+  title: string; 
+  icon: typeof Palette; 
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  return (
+    <section className="border-b border-border last:border-0">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between py-3 px-1 text-left hover:bg-surface-muted/50 transition-colors rounded"
+      >
+        <div className="flex items-center gap-2">
+          <Icon className="h-3.5 w-3.5 text-accent" />
+          <span className="text-xs font-bold uppercase tracking-wider text-text-v3">{title}</span>
+        </div>
+        <ChevronDown 
+          className={`h-3.5 w-3.5 text-text-v5 transition-transform duration-200 ${isOpen ? "" : "-rotate-90"}`} 
+        />
+      </button>
+      <div 
+        className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-[500px] opacity-100 pb-4" : "max-h-0 opacity-0"}`}
+      >
+        <div className="space-y-3 pt-1">
+          {children}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Simple Toggle Switch - no motion.div, pure CSS
+ */
+function Toggle({ label, active, onToggle }: { label: string; active: boolean; onToggle: () => void }) {
+  return (
+    <button 
+      onClick={onToggle}
+      className={`flex items-center justify-between p-2 rounded-lg border transition-colors ${
+        active 
+          ? "bg-accent/10 border-accent/30 text-text-v1" 
+          : "bg-surface-muted border-transparent text-text-v5 hover:bg-surface-hover"
+      }`}
+    >
+      <span className="text-[10px] font-bold uppercase">{label}</span>
+      <div className={`w-7 h-4 rounded-full p-0.5 transition-colors ${active ? "bg-accent" : "bg-surface-hover"}`}>
+        <div 
+          className={`h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-150 ${active ? "translate-x-3" : "translate-x-0"}`}
+        />
+      </div>
+    </button>
+  );
+}
+
+/**
+ * Slider with value display
+ */
+function Slider({ 
+  label, 
+  value, 
+  min, 
+  max, 
+  step = 1,
+  unit = "",
+  onChange 
+}: { 
+  label: string; 
+  value: number; 
+  min: number; 
+  max: number; 
+  step?: number;
+  unit?: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <label className="text-[10px] font-bold text-text-v5 uppercase">{label}</label>
+        <span className="text-[10px] font-mono text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+          {value}{unit}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value))}
+        className="w-full accent-accent h-1.5 bg-surface-hover rounded-full appearance-none cursor-pointer"
+      />
+    </div>
+  );
+}
+
+/**
+ * Sidebar content - extracted for reuse in mobile drawer
+ */
+export function SidebarContent() {
   const { 
     accentColor,
     fontSize,
     chatStyle,
-    sidebarOpacity,
     themePreset,
-    isSidebarCollapsed,
     updateField, 
     maxLoadedMessages,
     focusMode,
@@ -51,467 +157,226 @@ export function CustomizationSidebar() {
     showTimestamps,
     showBadges,
     messageAnimations,
-    // New customization options
     fontFamily,
     borderRadius,
-    blurIntensity,
-    glowEffects,
-    messageAlign,
-    sidebarPosition,
     apiKey
   } = useCustomization();
-  
-  const colorPresets = ["#CA0377", "#9147ff", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#8b5cf6"];
-  const themePresets: ThemePreset[] = ["original", "dark", "oled", "light", "creamy"];
-  const fontPresets: { value: FontFamily; label: string }[] = [
-    { value: "system", label: "System" },
-    { value: "inter", label: "Inter" },
-    { value: "mono", label: "Mono" },
-    { value: "serif", label: "Serif" },
-  ];
-  const radiusPresets: { value: BorderRadius; label: string; icon: typeof Circle }[] = [
-    { value: "none", label: "Sharp", icon: Square },
-    { value: "small", label: "Subtle", icon: RectangleHorizontal },
-    { value: "medium", label: "Rounded", icon: RectangleHorizontal },
-    { value: "large", label: "Soft", icon: Circle },
-    { value: "full", label: "Pill", icon: Circle },
-  ];
 
+  return (
+    <div className="px-4 py-2 space-y-1">
+      {/* Theme & Colors */}
+      <Section title="Theme" icon={Palette}>
+        <div className="grid grid-cols-5 gap-1.5">
+          {themePresets.map((preset) => (
+            <button
+              key={preset}
+              onClick={() => updateField("themePreset", preset)}
+              className={`px-2 py-1.5 rounded text-[9px] font-bold capitalize border transition-colors ${
+                themePreset === preset 
+                  ? "bg-accent/10 border-accent text-accent" 
+                  : "bg-surface-muted border-transparent text-text-v5 hover:bg-surface-hover"
+              }`}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex flex-wrap gap-2 pt-2">
+          {colorPresets.map((color) => (
+            <button
+              key={color}
+              onClick={() => updateField("accentColor", color)}
+              className={`h-6 w-6 rounded-full transition-transform ${accentColor === color ? "scale-110 ring-2 ring-white/30" : "hover:scale-105"}`}
+              style={{ backgroundColor: color }}
+            >
+              {accentColor === color && <Check className="h-3 w-3 text-white mx-auto" />}
+            </button>
+          ))}
+          <input
+            type="color"
+            value={accentColor}
+            onChange={(e) => updateField("accentColor", e.target.value)}
+            className="h-6 w-6 rounded-full overflow-hidden border border-dashed border-border cursor-pointer"
+          />
+        </div>
+      </Section>
+
+      {/* Typography */}
+      <Section title="Text" icon={Type}>
+        <div className="grid grid-cols-4 gap-1.5">
+          {fontPresets.map((font) => (
+            <button
+              key={font.value}
+              onClick={() => updateField("fontFamily", font.value)}
+              className={`px-2 py-1.5 rounded text-[9px] font-bold border transition-colors ${
+                fontFamily === font.value 
+                  ? "bg-accent/10 border-accent text-accent" 
+                  : "bg-surface-muted border-transparent text-text-v5 hover:bg-surface-hover"
+              }`}
+            >
+              {font.label}
+            </button>
+          ))}
+        </div>
+        <Slider label="Size" value={fontSize} min={12} max={22} unit="px" onChange={(v) => updateField("fontSize", v)} />
+      </Section>
+
+      {/* Layout */}
+      <Section title="Layout" icon={Layout}>
+        <div className="flex gap-1.5">
+          {(["comfy", "compact"] as ChatStyle[]).map((style) => (
+            <button
+              key={style}
+              onClick={() => updateField("chatStyle", style)}
+              className={`flex-1 py-1.5 rounded text-[10px] font-bold uppercase transition-colors ${
+                chatStyle === style 
+                  ? "bg-accent/10 text-accent" 
+                  : "bg-surface-muted text-text-v5 hover:bg-surface-hover"
+              }`}
+            >
+              {style}
+            </button>
+          ))}
+        </div>
+        
+        <Slider label="Width" value={chatWidth} min={30} max={100} step={5} unit="%" onChange={(v) => updateField("chatWidth", v)} />
+        
+        <div className="grid grid-cols-4 gap-1.5">
+          {radiusPresets.map((r) => (
+            <button
+              key={r}
+              onClick={() => updateField("borderRadius", r)}
+              className={`py-1.5 rounded text-[9px] font-bold capitalize transition-colors ${
+                borderRadius === r 
+                  ? "bg-accent/10 text-accent" 
+                  : "bg-surface-muted text-text-v5 hover:bg-surface-hover"
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      {/* Display Toggles */}
+      <Section title="Display" icon={Eye}>
+        <div className="grid grid-cols-2 gap-1.5">
+          <Toggle label="Avatars" active={showAvatars} onToggle={() => updateField("showAvatars", !showAvatars)} />
+          <Toggle label="Time" active={showTimestamps} onToggle={() => updateField("showTimestamps", !showTimestamps)} />
+          <Toggle label="Badges" active={showBadges} onToggle={() => updateField("showBadges", !showBadges)} />
+          <Toggle label="Anims" active={messageAnimations} onToggle={() => updateField("messageAnimations", !messageAnimations)} />
+        </div>
+      </Section>
+
+      {/* Performance */}
+      <Section title="Performance" icon={Zap} defaultOpen={false}>
+        <Slider 
+          label="Max Messages" 
+          value={maxLoadedMessages} 
+          min={100} 
+          max={1000} 
+          step={50} 
+          onChange={(v) => updateField("maxLoadedMessages", v)} 
+        />
+        <p className="text-[9px] text-text-v5">Lower if experiencing lag</p>
+        
+        <button 
+          onClick={() => updateField("focusMode", !focusMode)}
+          className={`w-full flex items-center justify-between p-2 rounded-lg border transition-colors ${
+            focusMode 
+              ? "bg-accent/20 border-accent/50 text-text-v1" 
+              : "bg-surface-muted border-transparent text-text-v5 hover:bg-surface-hover"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Maximize className="h-3.5 w-3.5" />
+            <span className="text-[10px] font-bold">Focus Mode</span>
+          </div>
+          <div className={`w-7 h-4 rounded-full p-0.5 transition-colors ${focusMode ? "bg-accent" : "bg-surface-hover"}`}>
+            <div className={`h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-150 ${focusMode ? "translate-x-3" : "translate-x-0"}`} />
+          </div>
+        </button>
+      </Section>
+
+      {/* API Key */}
+      <Section title="API Key" icon={Key} defaultOpen={false}>
+        <div className="relative">
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => updateField("apiKey", e.target.value)}
+            placeholder="YouTube API key..."
+            className="w-full bg-surface-muted border border-border rounded px-2.5 py-2 text-[11px] text-text-v1 focus:border-accent/50 outline-none transition-colors"
+          />
+        </div>
+        <p className="text-[9px] text-text-v5 leading-relaxed">
+          Default: @t3dotgg only. Add key to unlock all channels.
+        </p>
+      </Section>
+    </div>
+  );
+}
+
+/**
+ * Customization Sidebar - simplified and lightweight
+ */
+export function CustomizationSidebar() {
+  const { 
+    sidebarOpacity,
+    isSidebarCollapsed,
+    updateField, 
+    sidebarPosition,
+  } = useCustomization();
+
+  // Collapsed state
   if (isSidebarCollapsed) {
     return (
-      <aside className={`hidden h-full flex-col items-center border-card-border bg-sidebar py-6 md:flex w-[70px] transition-all duration-300 ${sidebarPosition === 'left' ? 'border-r order-first' : 'border-l order-last'}`}>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 border border-accent/20">
-          <MessageSquare className="h-5 w-5 text-accent" />
+      <aside className={`hidden md:flex h-full flex-col items-center border-card-border bg-sidebar py-4 w-14 transition-colors ${
+        sidebarPosition === 'left' ? 'border-r order-first' : 'border-l order-last'
+      }`}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
+          <MessageSquare className="h-4 w-4 text-accent" />
         </div>
-        <div className="mt-auto">
-          <button 
-            onClick={() => updateField("isSidebarCollapsed", false)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-surface-hover text-text-v5 hover:text-text-v1 transition-colors"
-            aria-label="Expand Sidebar"
-          >
-            {sidebarPosition === 'left' ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-          </button>
-        </div>
+        <button 
+          onClick={() => updateField("isSidebarCollapsed", false)}
+          className="mt-auto p-2 rounded-lg hover:bg-surface-hover text-text-v5 hover:text-text-v1 transition-colors"
+          aria-label="Expand Sidebar"
+        >
+          {sidebarPosition === 'left' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
       </aside>
     );
   }
 
   return (
     <aside 
-      className={`hidden w-[360px] flex-col border-card-border bg-sidebar h-full md:flex transition-all duration-300 relative ${sidebarPosition === 'left' ? 'border-r order-first' : 'border-l order-last'}`}
+      className={`hidden md:flex w-72 flex-col border-card-border bg-sidebar h-full transition-opacity ${
+        sidebarPosition === 'left' ? 'border-r order-first' : 'border-l order-last'
+      }`}
       style={{ opacity: sidebarOpacity / 100 }}
     >
-      {/* Collapse Trigger */}
-      <button 
-        onClick={() => updateField("isSidebarCollapsed", true)}
-        className={`absolute top-6 p-2 rounded-lg hover:bg-surface-hover text-text-v5 hover:text-text-v1 transition-colors ${sidebarPosition === 'left' ? 'right-4' : 'left-4'}`}
-        title="Collapse Sidebar"
-        aria-label="Collapse Sidebar"
-      >
-        {sidebarPosition === 'left' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-      </button>
-
-      {/* App Logo Area */}
-      <div className="p-6 pb-2">
-        <div className="flex items-center gap-3 px-1 py-4">
-          <div 
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 border border-accent/20 shadow-lg"
-            style={{ boxShadow: glowEffects ? `0 0 20px var(--accent-soft)` : 'none' }}
-          >
-            <MessageSquare className="h-5 w-5 text-accent" />
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/20">
+            <Settings className="h-3.5 w-3.5 text-accent" />
           </div>
-          <span className="text-xl font-black tracking-tighter text-text-v1">yT3 Chat</span>
+          <span className="text-sm font-bold text-text-v1">Customize</span>
         </div>
+        <button 
+          onClick={() => updateField("isSidebarCollapsed", true)}
+          className="p-1.5 rounded hover:bg-surface-hover text-text-v5 hover:text-text-v1 transition-colors"
+          aria-label="Collapse Sidebar"
+        >
+          {sidebarPosition === 'left' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </button>
       </div>
 
-      {/* Main Settings Area */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4 space-y-8">
-        
-        {/* --- THEMES --- */}
-        <section className="space-y-5 animate-fade-in">
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
-            <Palette className="h-4 w-4 text-accent" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-text-v3">Theme & Color</h2>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Base Theme</label>
-            <div className="grid grid-cols-3 gap-2">
-              {themePresets.map((preset) => (
-                <button
-                  key={preset}
-                  onClick={() => updateField("themePreset", preset)}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold capitalize border transition-all ${
-                    themePreset === preset 
-                      ? "bg-accent/10 border-accent text-accent shadow-sm" 
-                      : "bg-surface-muted border-border text-text-v5 hover:bg-surface-hover hover:text-text-v3"
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Accent Colors */}
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Accent</label>
-            <div className="flex flex-wrap gap-2.5">
-              {colorPresets.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => updateField("accentColor", color)}
-                  className="relative h-7 w-7 rounded-full transition-all"
-                  style={{ 
-                    backgroundColor: color,
-                    boxShadow: accentColor === color ? `0 0 12px ${color}, 0 0 4px ${color}` : 'none',
-                    transform: accentColor === color ? 'scale(1.15)' : 'scale(1)',
-                  }}
-                  aria-label={`Select color ${color}`}
-                >
-                  {accentColor === color && (
-                    <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-md" />
-                  )}
-                </button>
-              ))}
-              <input
-                 type="color"
-                 value={accentColor}
-                 onChange={(e) => updateField("accentColor", e.target.value)}
-                 className="h-7 w-7 rounded-full overflow-hidden border-2 border-dashed border-border p-0 cursor-pointer"
-                 aria-label="Custom color picker"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* --- TYPOGRAPHY --- */}
-        <section className="space-y-5 animate-fade-in" style={{ animationDelay: "50ms" }}>
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
-            <Type className="h-4 w-4 text-accent" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-text-v3">Typography</h2>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Font Family</label>
-            <div className="grid grid-cols-2 gap-2">
-              {fontPresets.map((font) => (
-                <button
-                  key={font.value}
-                  onClick={() => updateField("fontFamily", font.value)}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
-                    fontFamily === font.value 
-                      ? "bg-accent/10 border-accent text-accent" 
-                      : "bg-surface-muted border-border text-text-v5 hover:bg-surface-hover"
-                  }`}
-                  style={{ fontFamily: font.value === 'mono' ? 'monospace' : font.value === 'serif' ? 'serif' : 'inherit' }}
-                >
-                  {font.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Font Size</label>
-              <span className="text-[11px] font-mono font-semibold text-accent tabular-nums bg-accent/10 px-2 py-0.5 rounded">{fontSize}px</span>
-            </div>
-            <input
-              type="range"
-              min="12"
-              max="24"
-              value={fontSize}
-              onChange={(e) => updateField("fontSize", parseInt(e.target.value))}
-              className="w-full accent-accent h-1.5 bg-surface-hover rounded-full appearance-none cursor-pointer"
-              aria-label="Font size slider"
-            />
-          </div>
-        </section>
-
-        {/* --- EFFECTS --- */}
-        <section className="space-y-5 animate-fade-in" style={{ animationDelay: "100ms" }}>
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
-            <Sparkles className="h-4 w-4 text-accent" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-text-v3">Effects</h2>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Border Radius</label>
-            <div className="grid grid-cols-5 gap-1.5">
-              {radiusPresets.map((preset) => (
-                <button
-                  key={preset.value}
-                  onClick={() => updateField("borderRadius", preset.value)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
-                    borderRadius === preset.value 
-                      ? "bg-accent/10 border-accent text-accent" 
-                      : "bg-surface-muted border-border text-text-v5 hover:bg-surface-hover"
-                  }`}
-                  title={preset.label}
-                >
-                  <preset.icon className="h-4 w-4" />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Blur Intensity</label>
-              <span className="text-[11px] font-mono font-semibold text-accent tabular-nums bg-accent/10 px-2 py-0.5 rounded">{blurIntensity}px</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="24"
-              value={blurIntensity}
-              onChange={(e) => updateField("blurIntensity", parseInt(e.target.value))}
-              className="w-full accent-accent h-1.5 bg-surface-hover rounded-full appearance-none cursor-pointer"
-              aria-label="Blur intensity slider"
-            />
-          </div>
-
-          <ToggleButton 
-            label="Glow Effects" 
-            active={glowEffects} 
-            onToggle={() => updateField("glowEffects", !glowEffects)} 
-          />
-        </section>
-
-        {/* --- LAYOUT --- */}
-        <section className="space-y-5 animate-fade-in" style={{ animationDelay: "150ms" }}>
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
-            <Layout className="h-4 w-4 text-accent" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-text-v3">Layout</h2>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Sidebar Position</label>
-            <div className="flex p-1 bg-surface-muted rounded-lg border border-border">
-              <button
-                onClick={() => updateField("sidebarPosition", "left")}
-                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${sidebarPosition === "left" ? "bg-surface-hover text-text-v1 shadow-sm" : "text-text-v5 hover:text-text-v3"}`}
-              >
-                <PanelLeft className="h-3.5 w-3.5" />
-                Left
-              </button>
-              <button
-                onClick={() => updateField("sidebarPosition", "right")}
-                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${sidebarPosition === "right" ? "bg-surface-hover text-text-v1 shadow-sm" : "text-text-v5 hover:text-text-v3"}`}
-              >
-                <PanelRight className="h-3.5 w-3.5" />
-                Right
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Chat Density</label>
-            <div className="flex p-1 bg-surface-muted rounded-lg border border-border">
-              {(["comfy", "compact"] as ChatStyle[]).map((style) => (
-                <button
-                  key={style}
-                  onClick={() => updateField("chatStyle", style)}
-                  className={`flex-1 py-1.5 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${chatStyle === style ? "bg-surface-hover text-text-v1 shadow-sm" : "text-text-v5 hover:text-text-v3"}`}
-                >
-                  {style}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Chat Width</label>
-              <span className="text-[11px] font-mono font-semibold text-accent tabular-nums bg-accent/10 px-2 py-0.5 rounded">{chatWidth}%</span>
-            </div>
-            <input
-              type="range"
-              min="25"
-              max="100"
-              step="5"
-              value={chatWidth}
-              onChange={(e) => updateField("chatWidth", parseInt(e.target.value))}
-              className="w-full accent-accent h-1.5 bg-surface-hover rounded-full appearance-none cursor-pointer"
-              aria-label="Chat width slider"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Message Align</label>
-            <div className="flex p-1 bg-surface-muted rounded-lg border border-border">
-              <button
-                onClick={() => updateField("messageAlign", "left")}
-                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${messageAlign === "left" ? "bg-surface-hover text-text-v1 shadow-sm" : "text-text-v5 hover:text-text-v3"}`}
-              >
-                <AlignLeft className="h-3.5 w-3.5" />
-                Left
-              </button>
-              <button
-                onClick={() => updateField("messageAlign", "center")}
-                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${messageAlign === "center" ? "bg-surface-hover text-text-v1 shadow-sm" : "text-text-v5 hover:text-text-v3"}`}
-              >
-                <AlignCenter className="h-3.5 w-3.5" />
-                Center
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* --- DISPLAY --- */}
-        <section className="space-y-5 animate-fade-in" style={{ animationDelay: "200ms" }}>
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
-            <Eye className="h-4 w-4 text-accent" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-text-v3">Display</h2>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleButton 
-              label="Avatars" 
-              active={showAvatars} 
-              onToggle={() => updateField("showAvatars", !showAvatars)} 
-            />
-            <ToggleButton 
-              label="Time" 
-              active={showTimestamps} 
-              onToggle={() => updateField("showTimestamps", !showTimestamps)} 
-            />
-            <ToggleButton 
-              label="Badges" 
-              active={showBadges} 
-              onToggle={() => updateField("showBadges", !showBadges)} 
-            />
-            <ToggleButton 
-              label="Anims" 
-              active={messageAnimations} 
-              onToggle={() => updateField("messageAnimations", !messageAnimations)} 
-            />
-          </div>
-        </section>
-
-        {/* --- PERFORMANCE --- */}
-        <section className="space-y-5 animate-fade-in" style={{ animationDelay: "250ms" }}>
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
-            <Zap className="h-4 w-4 text-accent" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-text-v3">Performance</h2>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Max Messages</label>
-              <span className="text-[11px] font-mono font-semibold text-accent tabular-nums bg-accent/10 px-2 py-0.5 rounded">{maxLoadedMessages}</span>
-            </div>
-            <input
-              type="range"
-              min="100"
-              max="1000"
-              step="50"
-              value={maxLoadedMessages}
-              onChange={(e) => updateField("maxLoadedMessages", parseInt(e.target.value))}
-              className="w-full accent-accent h-1.5 bg-surface-hover rounded-full appearance-none cursor-pointer"
-              aria-label="Max loaded messages slider"
-            />
-            <p className="text-[10px] text-text-v5">Lower this if you experience lag.</p>
-          </div>
-
-          <div className="space-y-3">
-             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">Sidebar Opacity</label>
-              <span className="text-[11px] font-mono font-semibold text-accent tabular-nums bg-accent/10 px-2 py-0.5 rounded">{sidebarOpacity}%</span>
-            </div>
-            <input
-              type="range"
-              min="50"
-              max="100"
-              value={sidebarOpacity}
-              onChange={(e) => updateField("sidebarOpacity", parseInt(e.target.value))}
-              className="w-full accent-accent h-1.5 bg-surface-hover rounded-full appearance-none cursor-pointer"
-              aria-label="Sidebar opacity slider"
-            />
-          </div>
-
-          <div className="pt-2">
-            <button 
-              onClick={() => updateField("focusMode", !focusMode)}
-              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${focusMode ? "bg-accent/20 border-accent/50 text-text-v1" : "bg-surface-muted border-border text-text-v3 hover:bg-surface-hover"}`}
-              aria-label="Toggle Focus Mode"
-            >
-              <div className="flex items-center gap-2">
-                <Maximize className="h-4 w-4" />
-                <div className="text-xs font-bold">Focus Mode</div>
-              </div>
-              <motion.div 
-                className={`w-8 h-4 rounded-full p-0.5 transition-colors ${focusMode ? "bg-accent" : "bg-surface-hover"}`}
-              >
-                <motion.div 
-                  className="h-3 w-3 rounded-full bg-white shadow-sm"
-                  layout
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  style={{ x: focusMode ? 16 : 0 }}
-                />
-              </motion.div>
-            </button>
-          </div>
-        </section>
-
-        {/* --- API & CONNECTIVITY --- */}
-        <section className="space-y-5 animate-fade-in" style={{ animationDelay: "300ms" }}>
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
-            <Key className="h-4 w-4 text-accent" />
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-text-v3">API & BYOK</h2>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold text-text-v5 uppercase tracking-wide">YouTube API Key</label>
-            <div className="relative group">
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => updateField("apiKey", e.target.value)}
-                placeholder="Paste your API key here..."
-                className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-xs text-text-v1 focus:border-accent/50 focus:ring-1 focus:ring-accent/20 outline-none transition-all"
-              />
-              <Key className="absolute right-3 top-2.5 h-3.5 w-3.5 text-text-v5/30 group-focus-within:text-accent transition-colors" />
-            </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-accent/5 border border-accent/10 space-y-2">
-            <div className="flex items-center gap-2 text-accent">
-              <Info className="h-3.5 w-3.5" />
-              <span className="text-[10px] font-bold uppercase">Pro Tip</span>
-            </div>
-            <p className="text-[11px] text-text-v5 leading-relaxed">
-              Without an API key, you are limited to <span className="text-text-v3 font-bold">@t3dotgg</span> streams. Add your own key to support <span className="text-text-v3 font-bold">ANY</span> channel.
-            </p>
-          </div>
-        </section>
-
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <SidebarContent />
       </div>
     </aside>
-  );
-}
-
-/**
- * Reusable Toggle Button with spring animation
- */
-function ToggleButton({ label, active, onToggle }: { label: string; active: boolean; onToggle: () => void }) {
-  return (
-    <button 
-      onClick={onToggle}
-      className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${active ? "bg-accent/10 border-accent/30 text-text-v1" : "bg-surface-muted border-border text-text-v5 hover:bg-surface-hover"}`}
-      aria-label={`Toggle ${label}`}
-      aria-pressed={active}
-    >
-      <span className="text-[10px] font-bold uppercase">{label}</span>
-      <motion.div className={`w-6 h-3 rounded-full p-0.5 transition-colors ${active ? "bg-accent" : "bg-surface-hover"}`}>
-        <motion.div 
-          className="h-2 w-2 rounded-full bg-white shadow-sm"
-          layout
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          style={{ x: active ? 12 : 0 }}
-        />
-      </motion.div>
-    </button>
   );
 }

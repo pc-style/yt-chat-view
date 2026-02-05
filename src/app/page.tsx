@@ -14,10 +14,12 @@ import { motion } from "framer-motion";
 import { ChatContainer } from "@/components/ChatContainer";
 import { ChatInput } from "@/components/ChatInput";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
-import { CustomizationSidebar } from "@/components/CustomizationSidebar";
+import { CustomizationSidebar, SidebarContent } from "@/components/CustomizationSidebar";
 import { ChoiceScreen } from "@/components/ChoiceScreen";
 import { StreamPage } from "@/components/stream/StreamPage";
 import { QuotaErrorBoundary } from "@/components/QuotaErrorBoundary";
+import { DemoControls } from "@/components/DemoControls";
+import { MobileNav } from "@/components/MobileNav";
 import { useChat } from "@/lib/hooks/useChat";
 import { useDemoChat } from "@/lib/hooks/useDemoChat";
 import { useCustomization } from "@/lib/hooks/useCustomization";
@@ -282,6 +284,17 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
   const chat = isDemo ? demoChat : liveChat;
   const { messages, connectionState, error, streamInfo, connect, disconnect } = chat;
 
+  // Extract demo-specific controls for the UI
+  const demoControls = isDemo ? {
+    speed: demoChat.speed,
+    setSpeed: demoChat.setSpeed,
+    isPaused: demoChat.isPaused,
+    pause: demoChat.pause,
+    resume: demoChat.resume,
+    progress: demoChat.progress,
+    loopCount: demoChat.loopCount,
+  } : null;
+
   const handleStartDemo = async () => {
     liveChat.disconnect();
     setIsDemo(true);
@@ -306,8 +319,13 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
         onStartDemo={handleStartDemo} 
       />
       
-      {/* Side Customization Panel - Hidden in Focus Mode */}
+      {/* Side Customization Panel - Hidden in Focus Mode (desktop only) */}
       {!focusMode && <CustomizationSidebar />}
+
+      {/* Mobile Navigation Drawer */}
+      <MobileNav accentColor={accentColor}>
+        <SidebarContent />
+      </MobileNav>
 
       {/* --- Main Content Area --- */}
       <main className="flex flex-1 flex-col overflow-hidden relative transition-all duration-300">
@@ -344,7 +362,7 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
             </div>
 
             <div className="flex items-center gap-4">
-              <ConnectionStatus state={connectionState} error={error} />
+              <ConnectionStatus state={connectionState} error={error} isDemo={isDemo} />
               <div className="h-4 w-px bg-card-border mx-2" />
               
               <button 
@@ -383,10 +401,18 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
               
               {/* Premium Anchored Input Bar */}
               <div 
-                className={`w-full px-8 border-t border-card-border backdrop-blur-xl transition-all duration-300 ${focusMode ? "py-4 opacity-0 hover:opacity-100" : "py-8"}`}
+                className={`w-full px-6 border-t border-card-border backdrop-blur-xl transition-all duration-300 ${focusMode ? "py-3 opacity-0 hover:opacity-100" : "py-4"}`}
                 style={{ backgroundColor: 'rgba(var(--background), 0.95)' }}
               >
-                <div className="max-w-3xl mx-auto flex flex-col gap-4">
+                <div className="max-w-3xl mx-auto flex flex-col gap-2">
+                  {/* Demo Controls - shown when in demo mode and not in focus mode */}
+                  {isDemo && demoControls && !focusMode && (
+                    <DemoControls
+                      {...demoControls}
+                      accentColor={accentColor}
+                    />
+                  )}
+                  
                   <ChatInput
                     onConnect={connect}
                     onDisconnect={disconnect}
@@ -394,8 +420,25 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
                     isConnecting={isConnecting}
                   />
                   {!focusMode && (
-                    <p className="text-[11px] text-center text-text-v5/50 font-medium">
-                      All channels supported with BYOK. Default: @t3dotgg. Accent: <span style={{ color: accentColor }}>{accentColor}</span>
+                    <p className="text-[10px] text-text-v5/40 text-center">
+                      Questions, bugs, or feature requests?{" "}
+                      <a 
+                        href="https://x.com/pcstyle53" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-text-v4 hover:text-accent transition-colors"
+                      >
+                        @pcstyle53
+                      </a>
+                      {" · "}
+                      <a 
+                        href="https://github.com/pc-style/yt-chat-view" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-text-v4 hover:text-accent transition-colors"
+                      >
+                        GitHub
+                      </a>
                     </p>
                   )}
                 </div>

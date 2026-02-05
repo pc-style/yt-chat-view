@@ -17,6 +17,7 @@ interface UseChatReturn {
   connect: (videoUrl: string) => Promise<void>;
   disconnect: () => void;
   clearMessages: () => void;
+  retryCount: number;
 }
 
 interface StreamInfo {
@@ -56,6 +57,51 @@ interface ApiMessage {
     isChatSponsor: boolean;
     isVerified: boolean;
   };
+}
+
+/** Maximum retry attempts before giving up */
+const MAX_RETRIES = 5;
+
+/** Initial retry delay in ms */
+const INITIAL_RETRY_DELAY = 1000;
+
+/** Maximum retry delay in ms */
+const MAX_RETRY_DELAY = 30000;
+
+/**
+ * Calculate exponential backoff delay
+ */
+function getRetryDelay(attempt: number): number {
+  const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
+  // Add jitter to prevent thundering herd
+  const jitter = Math.random() * 1000;
+  return Math.min(delay + jitter, MAX_RETRY_DELAY);
+}
+
+/**
+ * Parse and improve error messages for better UX
+ */
+function getReadableError(error: string): string {
+  const errorMap: Record<string, string> = {
+    "liveChatEnded": "This stream has ended",
+    "liveChatNotFound": "Live chat not found - is this a live stream?",
+    "videoNotFound": "Video not found - check the URL",
+    "quotaExceeded": "API quota exceeded - try again tomorrow or use your own API key",
+    "rateLimitExceeded": "Too many requests - slowing down",
+    "forbidden": "Access denied - this channel may restrict chat access",
+    "Invalid YouTube URL": "Please enter a valid YouTube URL or video ID",
+    "not a live stream": "This video is not currently live streaming",
+    "QUOTA_EXCEEDED": "Daily API quota reached - try Demo Mode or add your own API key",
+    "RATE_LIMITED": "Rate limited - please wait a moment",
+  };
+
+  for (const [key, message] of Object.entries(errorMap)) {
+    if (error.toLowerCase().includes(key.toLowerCase())) {
+      return message;
+    }
+  }
+  
+  return error;
 }
 
 /**
@@ -134,17 +180,30 @@ function transformMessage(msg: ApiMessage): ChatMessage {
 
 /**
  * Hook for managing YouTube Live Chat polling via server API
+ * Features:
+ * - Exponential backoff for retries
+ * - Better error messages
+ * - Retry counter for UI feedback
  */
 export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): UseChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [error, setError] = useState<string | null>(null);
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const liveChatIdRef = useRef<string | null>(null);
   const pageTokenRef = useRef<string | undefined>(undefined);
   const seenIdsRef = useRef<Set<string>>(new Set());
+  const consecutiveErrorsRef = useRef(0);
+  // Track connection state in ref to avoid stale closure in polling loop
+  const connectionStateRef = useRef<ConnectionState>(connectionState);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    connectionStateRef.current = connectionState;
+  }, [connectionState]);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -157,9 +216,11 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
     stopPolling();
     liveChatIdRef.current = null;
     pageTokenRef.current = undefined;
+    consecutiveErrorsRef.current = 0;
     setConnectionState("disconnected");
     setStreamInfo(null);
     setError(null);
+    setRetryCount(0);
   }, [stopPolling]);
 
   const pollMessages = useCallback(async () => {
@@ -183,6 +244,16 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
       }
 
       const data = result.data;
+
+      // Success - reset error counter
+      consecutiveErrorsRef.current = 0;
+      setRetryCount(0);
+      setError(null);
+      
+      // Ensure we're marked as connected (use ref to avoid stale closure)
+      if (connectionStateRef.current !== "connected") {
+        setConnectionState("connected");
+      }
 
       // Check if stream went offline
       if (data.offlineAt) {
@@ -211,10 +282,26 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
       const pollInterval = Math.max(data.pollingIntervalMillis, 1000);
       pollingRef.current = setTimeout(pollMessages, pollInterval);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to fetch messages";
-      setError(message);
+      consecutiveErrorsRef.current += 1;
+      const errorCount = consecutiveErrorsRef.current;
+      const rawMessage = err instanceof Error ? err.message : "Failed to fetch messages";
+      const readableMessage = getReadableError(rawMessage);
+      
+      setError(readableMessage);
+      setRetryCount(errorCount);
+      
+      // Check if we should keep retrying
+      if (errorCount >= MAX_RETRIES) {
+        setConnectionState("error");
+        stopPolling();
+        setError(`${readableMessage} (gave up after ${MAX_RETRIES} attempts)`);
+        return;
+      }
+      
+      // Exponential backoff retry
       setConnectionState("error");
-      pollingRef.current = setTimeout(pollMessages, 5000);
+      const delay = getRetryDelay(errorCount);
+      pollingRef.current = setTimeout(pollMessages, delay);
     }
   }, [maxMessages, stopPolling, apiKey]);
 
@@ -261,8 +348,9 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
         setConnectionState("connected");
         pollMessages();
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to connect";
-        setError(message);
+        const rawMessage = err instanceof Error ? err.message : "Failed to connect";
+        const readableMessage = getReadableError(rawMessage);
+        setError(readableMessage);
         setConnectionState("error");
       }
     },
@@ -288,5 +376,6 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
     connect,
     disconnect,
     clearMessages,
+    retryCount,
   };
 }

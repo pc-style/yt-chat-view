@@ -60,6 +60,7 @@ export function QuotaErrorBoundary({ error, onDismiss, onStartDemo }: QuotaError
             <button
               onClick={handleDismiss}
               className="absolute top-4 right-4 p-2 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors"
+              aria-label="Close error dialog"
             >
               <X className="h-4 w-4" />
             </button>
