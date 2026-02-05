@@ -82,6 +82,7 @@ export function ChatInput({
               backgroundColor: accentColor,
               boxShadow: `0 4px 15px ${accentColor}40`,
             }}
+            aria-label={isConnecting ? "Connecting to chat..." : "Connect to chat"}
           >
             {isConnecting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
