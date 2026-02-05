@@ -92,10 +92,18 @@ export function DemoControls({
   // Collapsible full controls
   return (
     <div className="w-full">
-      {/* Collapsed toggle bar */}
-      <button
+      {/* Collapsed toggle bar - using div with role="button" to allow nested button */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-white/[0.07] border border-white/10 transition-colors group"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsExpanded(!isExpanded);
+          }
+        }}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-white/[0.07] border border-white/10 transition-colors group cursor-pointer"
       >
         <div className="flex items-center gap-2">
           <Zap className="h-3.5 w-3.5" style={{ color: accentColor }} />
@@ -138,7 +146,7 @@ export function DemoControls({
             className={`h-3.5 w-3.5 text-white/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
           />
         </div>
-      </button>
+      </div>
 
       {/* Expanded controls */}
       <AnimatePresence>

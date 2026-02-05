@@ -197,6 +197,13 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
   const pageTokenRef = useRef<string | undefined>(undefined);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const consecutiveErrorsRef = useRef(0);
+  // Track connection state in ref to avoid stale closure in polling loop
+  const connectionStateRef = useRef<ConnectionState>(connectionState);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    connectionStateRef.current = connectionState;
+  }, [connectionState]);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -243,8 +250,8 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
       setRetryCount(0);
       setError(null);
       
-      // Ensure we're marked as connected
-      if (connectionState !== "connected") {
+      // Ensure we're marked as connected (use ref to avoid stale closure)
+      if (connectionStateRef.current !== "connected") {
         setConnectionState("connected");
       }
 
@@ -296,7 +303,7 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
       const delay = getRetryDelay(errorCount);
       pollingRef.current = setTimeout(pollMessages, delay);
     }
-  }, [maxMessages, stopPolling, apiKey, connectionState]);
+  }, [maxMessages, stopPolling, apiKey]);
 
   const connect = useCallback(
     async (videoUrl: string) => {

@@ -201,8 +201,9 @@ export function useDemoChat({
     if (connectionState !== "connected" || !isPaused) return;
     
     setIsPaused(false);
-    scheduleMessages(pausedAtRef.current * speed); // Adjust for speed
-  }, [connectionState, isPaused, scheduleMessages, speed]);
+    // pausedAtRef is already in "real time" (not speed-adjusted), pass directly
+    scheduleMessages(pausedAtRef.current);
+  }, [connectionState, isPaused, scheduleMessages]);
 
   // Restart scheduling when speed changes
   useEffect(() => {
