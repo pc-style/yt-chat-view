@@ -28,9 +28,7 @@ import {
   ChatStyle, 
   ThemePreset, 
   FontFamily, 
-  BorderRadius,
-  MessageAlign,
-  SidebarPosition
+  BorderRadius
 } from "@/lib/hooks/useCustomization";
 
 /**

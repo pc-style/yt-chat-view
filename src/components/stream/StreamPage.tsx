@@ -13,13 +13,14 @@ import {
   Loader2, 
   Key, 
   RefreshCw,
-  LogOut
+  LogOut,
+  Zap
 } from "lucide-react";
 import { StreamChatMessage } from "./StreamChatMessage";
-import type { ChatMessage as ChatMessageType } from "@/types/youtube";
 import { useChat } from "@/lib/hooks/useChat";
+import { useDemoChat } from "@/lib/hooks/useDemoChat";
 import { useCustomization } from "@/lib/hooks/useCustomization";
-import { springs, fadeUpVariants, scaleFadeVariants } from "@/lib/motion";
+import { springs } from "@/lib/motion";
 
 interface StreamPageProps {
   onSwitchUI: () => void;
@@ -33,6 +34,7 @@ interface StreamPageProps {
 export function StreamPage({ onSwitchUI }: StreamPageProps) {
   const [url, setUrl] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
 
@@ -40,18 +42,45 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
     apiKey, 
     updateField, 
     fontSize, 
-    accentColor, 
-    borderRadius,
+    accentColor,
     maxLoadedMessages
   } = useCustomization();
 
-  const { messages, connectionState, error, streamInfo, connect, disconnect, clearMessages } = useChat({
+  const liveChat = useChat({
     maxMessages: maxLoadedMessages,
     apiKey: apiKey,
   });
 
+  const demoChat = useDemoChat({
+    maxMessages: maxLoadedMessages,
+  });
+
+  const chat = isDemo ? demoChat : liveChat;
+  const { messages, connectionState, streamInfo, disconnect, clearMessages } = chat;
+
   const isConnected = connectionState === "connected";
   const isConnecting = connectionState === "connecting";
+
+  const handleStartDemo = async () => {
+    liveChat.disconnect();
+    setIsDemo(true);
+    setUrl("");
+    await demoChat.connect();
+  };
+
+  const handleConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (url.trim()) {
+      setIsDemo(false);
+      demoChat.disconnect();
+      await liveChat.connect(url.trim());
+    }
+  };
+
+  const handleDisconnect = () => {
+    disconnect();
+    setIsDemo(false);
+  };
 
   // Smooth auto-scroll with slight delay for animation
   useEffect(() => {
@@ -74,12 +103,7 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
     setIsAutoScrollEnabled(isNearBottom);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (url.trim()) {
-      await connect(url.trim());
-    }
-  };
+
 
   return (
     <div className="h-screen w-full bg-[#0a0a0a] flex flex-col overflow-hidden relative">
@@ -223,14 +247,28 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
           {/* Connection Status with animated transitions */}
           <AnimatePresence mode="wait">
             <motion.div 
-              key={connectionState}
+              key={`${connectionState}-${isDemo}`}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
               transition={springs.snappy}
               className="flex items-center gap-2 text-sm"
             >
-              {isConnected ? (
+              {isConnected && isDemo ? (
+                <>
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.15, 1],
+                      rotate: [0, 5, -5, 0],
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Zap className="h-4 w-4" style={{ color: accentColor }} />
+                  </motion.div>
+                  <span className="font-bold" style={{ color: accentColor }}>Demo</span>
+                  <span className="text-white/40 hidden sm:inline">Simulated Chat</span>
+                </>
+              ) : isConnected ? (
                 <>
                   <motion.div
                     animate={{ scale: [1, 1.2, 1] }}
@@ -391,9 +429,36 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="text-sm text-white/40 max-w-xs"
+                  className="text-sm text-white/40 max-w-xs mb-6"
                 >
                   Paste a YouTube Live URL below to start displaying chat
+                </motion.p>
+                
+                {/* Demo Button */}
+                <motion.button
+                  onClick={handleStartDemo}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all"
+                  style={{
+                    background: `linear-gradient(135deg, ${accentColor}30, ${accentColor}15)`,
+                    border: `1px solid ${accentColor}50`,
+                    color: accentColor,
+                  }}
+                >
+                  <Zap className="h-4 w-4" />
+                  Try Demo Mode
+                </motion.button>
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-[10px] text-white/30 mt-3"
+                >
+                  No API quota used
                 </motion.p>
               </motion.div>
             )}
@@ -434,13 +499,13 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
         transition={{ ...springs.smooth, delay: 0.2 }}
         className="relative px-6 py-4 border-t border-white/5 bg-[#0a0a0a]"
       >
-        <form onSubmit={handleSubmit} className="flex gap-3 max-w-2xl mx-auto">
+        <form onSubmit={handleConnect} className="flex gap-3 max-w-2xl mx-auto">
           <div className="flex-1 relative">
             <input
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Paste YouTube Live URL..."
+              placeholder={isDemo ? "Demo mode active - paste URL to switch to live" : "Paste YouTube Live URL..."}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-red-500/50 focus:ring-2 focus:ring-red-500/10 focus:scale-[1.01] transition-all"
             />
           </div>
@@ -453,12 +518,12 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={springs.snappy}
                 type="button"
-                onClick={disconnect}
+                onClick={handleDisconnect}
                 className="px-6 py-3 rounded-xl bg-white/10 text-white font-bold hover:bg-white/20 transition-colors"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Disconnect
+                {isDemo ? "Stop Demo" : "Disconnect"}
               </motion.button>
             ) : (
               <motion.button

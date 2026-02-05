@@ -6,25 +6,27 @@ import {
   MessageSquare,
   Users,
   Clock,
-  RefreshCw
+  RefreshCw,
+  Play,
+  Zap
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChatContainer } from "@/components/ChatContainer";
 import { ChatInput } from "@/components/ChatInput";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { CustomizationSidebar } from "@/components/CustomizationSidebar";
 import { ChoiceScreen } from "@/components/ChoiceScreen";
 import { StreamPage } from "@/components/stream/StreamPage";
+import { QuotaErrorBoundary } from "@/components/QuotaErrorBoundary";
 import { useChat } from "@/lib/hooks/useChat";
-import { useTheme } from "@/lib/hooks/useTheme";
+import { useDemoChat } from "@/lib/hooks/useDemoChat";
 import { useCustomization } from "@/lib/hooks/useCustomization";
 
 /**
  * Premium Welcome Hero Component
  * Enhanced with motion.dev spring physics
  */
-function WelcomeHero({ onQuickStart }: { onQuickStart: (url: string) => void }) {
+function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
   const { accentColor } = useCustomization();
   
   return (
@@ -101,7 +103,7 @@ function WelcomeHero({ onQuickStart }: { onQuickStart: (url: string) => void }) 
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          Welcome to YT_Chat
+          Welcome to T3 Chat
         </motion.h1>
         <motion.p 
           className="text-sm text-text-v5 mb-6 leading-relaxed"
@@ -112,9 +114,30 @@ function WelcomeHero({ onQuickStart }: { onQuickStart: (url: string) => void }) 
           Connect to authorized YouTube live streams and view the chat in real-time with custom styling.
         </motion.p>
         
-        {/* Quick Start Section removed */}
+        {/* Demo Mode Button */}
+        <motion.button
+          onClick={onStartDemo}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all"
+          style={{
+            background: `linear-gradient(135deg, ${accentColor}20, ${accentColor}10)`,
+            border: `1px solid ${accentColor}40`,
+            color: accentColor,
+          }}
+          whileHover={{ 
+            scale: 1.02,
+            boxShadow: `0 0 20px ${accentColor}30`,
+          }}
+          whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Play className="h-4 w-4 fill-current" />
+          Try Live Demo
+        </motion.button>
+        
         <p className="text-[10px] text-text-v5/60 mt-4">
-          Paste any authorized live stream URL below to start
+          Or paste a live stream URL below to connect
         </p>
       </motion.div>
     </motion.div>
@@ -124,7 +147,9 @@ function WelcomeHero({ onQuickStart }: { onQuickStart: (url: string) => void }) 
 /**
  * Stream Info Bar Component
  */
-function StreamInfoBar({ streamInfo }: { streamInfo: { channelTitle: string; title: string; concurrentViewers?: string; actualStartTime?: string } }) {
+function StreamInfoBar({ streamInfo, isDemo }: { streamInfo: { channelTitle: string; title: string; concurrentViewers?: string; actualStartTime?: string }; isDemo?: boolean }) {
+  const { accentColor } = useCustomization();
+  
   const formatDuration = (startTime?: string) => {
     if (!startTime) return null;
     const start = new Date(startTime);
@@ -137,6 +162,27 @@ function StreamInfoBar({ streamInfo }: { streamInfo: { channelTitle: string; tit
 
   return (
     <div className="flex items-center gap-4 text-xs text-text-v5">
+      {isDemo && (
+        <motion.span 
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
+          style={{
+            background: `linear-gradient(135deg, ${accentColor}30, ${accentColor}15)`,
+            border: `1px solid ${accentColor}50`,
+            color: accentColor,
+          }}
+          animate={{ 
+            boxShadow: [
+              `0 0 0px ${accentColor}00`,
+              `0 0 12px ${accentColor}40`,
+              `0 0 0px ${accentColor}00`,
+            ]
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <Zap className="h-3 w-3" />
+          Demo
+        </motion.span>
+      )}
       <span className="font-semibold text-text-v3">{streamInfo.channelTitle}</span>
       <span className="hidden sm:inline truncate max-w-[200px]">{streamInfo.title}</span>
       {streamInfo.concurrentViewers && (
@@ -202,15 +248,15 @@ export default function Home() {
     return <StreamPage onSwitchUI={handleSwitchUI} />;
   }
 
-  // Show full yT3_chat UI (current implementation)
-  return <YT3ChatUI onSwitchUI={handleSwitchUI} />;
+  // Show full T3 UI (current implementation)
+  return <T3ChatUI onSwitchUI={handleSwitchUI} />;
 }
 
 /**
- * Full-featured yT3_chat UI (original implementation)
+ * Full-featured T3 UI (original implementation)
  */
-function YT3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
-  const { theme, toggleTheme } = useTheme();
+function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
+  const [isDemo, setIsDemo] = useState(false);
   
   const { 
     focusMode,
@@ -221,22 +267,45 @@ function YT3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
     apiKey
   } = useCustomization();
 
-  // Pass API key if configured (BYOK)
-  const { messages, connectionState, error, streamInfo, connect, disconnect, clearMessages } = useChat({
+  // Live chat hook
+  const liveChat = useChat({
     maxMessages: maxLoadedMessages,
     apiKey,
   });
 
-  const handleQuickStart = async (url: string) => {
-    await connect(url);
+  // Demo chat hook
+  const demoChat = useDemoChat({
+    maxMessages: maxLoadedMessages,
+  });
+
+  // Use the appropriate chat based on demo mode
+  const chat = isDemo ? demoChat : liveChat;
+  const { messages, connectionState, error, streamInfo, connect, disconnect } = chat;
+
+  const handleStartDemo = async () => {
+    liveChat.disconnect();
+    setIsDemo(true);
+    await demoChat.connect();
   };
 
   const isConnected = connectionState === "connected";
   const isConnecting = connectionState === "connecting";
   const hasMessages = messages.length > 0;
 
+  const clearError = () => {
+    // This clears the error from state - for now we just need to dismiss the modal
+    // The hook will naturally clear on next successful connection
+  };
+
   return (
     <div className="flex h-screen bg-background text-text-v3 selection:bg-accent/30 overflow-hidden">
+      {/* Quota Error Modal */}
+      <QuotaErrorBoundary 
+        error={error} 
+        onDismiss={clearError} 
+        onStartDemo={handleStartDemo} 
+      />
+      
       {/* Side Customization Panel - Hidden in Focus Mode */}
       {!focusMode && <CustomizationSidebar />}
 
@@ -262,7 +331,7 @@ function YT3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
           <header className="flex h-16 items-center justify-between border-b border-card-border bg-background/50 px-8 backdrop-blur-md z-10 shrink-0 transition-colors duration-300">
             <div className="flex items-center gap-6">
               {streamInfo ? (
-                <StreamInfoBar streamInfo={streamInfo} />
+                <StreamInfoBar streamInfo={streamInfo} isDemo={isDemo} />
               ) : (
                 <>
                   <span className="text-sm font-bold text-text-v1 tracking-tight">yT3 Chat</span>
@@ -306,7 +375,7 @@ function YT3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
               {/* Show Welcome Hero or Chat */}
               <div className="flex-1 overflow-hidden py-0">
                 {!hasMessages && !isConnected ? (
-                  <WelcomeHero onQuickStart={handleQuickStart} />
+                  <WelcomeHero onStartDemo={handleStartDemo} />
                 ) : (
                   <ChatContainer messages={messages} />
                 )}

@@ -1,7 +1,15 @@
 import type { NextRequest } from "next/server";
+import { 
+  getCacheKey, 
+  hashApiKey, 
+  getOrFetch 
+} from "@/lib/cache";
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 const ALLOWED_CHANNEL_ID = "UCbRP3c757lWg9M-U7TyEkXA";
+
+// Cache TTL for video details (60 seconds)
+const VIDEO_CACHE_TTL_MS = 60 * 1000;
 
 interface VideoItem {
   snippet?: {
@@ -23,9 +31,21 @@ interface VideoDetailsResponse {
   items?: VideoItem[];
 }
 
+interface ConnectData {
+  liveChatId: string;
+  videoId: string;
+  channelId: string;
+  channelTitle?: string;
+  title?: string;
+  thumbnailUrl?: string;
+  concurrentViewers?: string;
+  actualStartTime?: string;
+}
+
 /**
  * POST /api/youtube/connect
  * Validates video belongs to allowed channel and returns live chat ID
+ * Now with server-side caching to reduce API quota usage
  */
 export async function POST(request: NextRequest) {
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -42,6 +62,7 @@ export async function POST(request: NextRequest) {
     const { videoId, apiKey: clientApiKey } = body;
 
     const activeApiKey = clientApiKey || apiKey;
+    const apiKeyId = hashApiKey(clientApiKey);
 
     if (!videoId || typeof videoId !== "string") {
       return Response.json(
@@ -50,37 +71,86 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch video details including channel info
-    const params = new URLSearchParams({
-      part: "snippet,liveStreamingDetails",
-      id: videoId,
-      key: activeApiKey,
+    // Generate cache key
+    const cacheKey = getCacheKey("connect", videoId, apiKeyId);
+
+    // Try to get from cache or fetch fresh
+    const result = await getOrFetch<ConnectData>(
+      cacheKey,
+      async () => {
+        // Fetch video details from YouTube
+        const params = new URLSearchParams({
+          part: "snippet,liveStreamingDetails",
+          id: videoId,
+          key: activeApiKey,
+        });
+
+        const response = await fetch(`${YOUTUBE_API_BASE}/videos?${params}`);
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error?.message || "Failed to fetch video");
+        }
+
+        const data: VideoDetailsResponse = await response.json();
+
+        if (!data.items || data.items.length === 0) {
+          throw new Error("VIDEO_NOT_FOUND");
+        }
+
+        const video = data.items[0];
+        const channelId = video.snippet?.channelId;
+
+        // Validate channel ONLY if no client API key is provided
+        if (!clientApiKey && channelId !== ALLOWED_CHANNEL_ID) {
+          throw new Error("CHANNEL_NOT_ALLOWED");
+        }
+
+        const liveChatId = video.liveStreamingDetails?.activeLiveChatId;
+
+        if (!liveChatId) {
+          throw new Error("NO_LIVE_CHAT");
+        }
+
+        return {
+          data: {
+            liveChatId,
+            videoId,
+            channelId: channelId || "",
+            channelTitle: video.snippet?.channelTitle,
+            title: video.snippet?.title,
+            thumbnailUrl: video.snippet?.thumbnails?.high?.url,
+            concurrentViewers: video.liveStreamingDetails?.concurrentViewers,
+            actualStartTime: video.liveStreamingDetails?.actualStartTime,
+          },
+          ttlMs: VIDEO_CACHE_TTL_MS,
+        };
+      },
+      { staleWhileRevalidate: true }
+    );
+
+    // Return stream info with cache metadata
+    return Response.json({
+      status: "success",
+      data: result.data,
+      meta: {
+        fromCache: result.fromCache,
+        fetchedAt: result.fetchedAt,
+      },
     });
 
-    const response = await fetch(`${YOUTUBE_API_BASE}/videos?${params}`);
-
-    if (!response.ok) {
-      const error = await response.json();
-      return Response.json(
-        { status: "error", code: "YOUTUBE_API_ERROR", message: error.error?.message || "Failed to fetch video" },
-        { status: response.status }
-      );
-    }
-
-    const data: VideoDetailsResponse = await response.json();
-
-    if (!data.items || data.items.length === 0) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    
+    // Map known errors to appropriate responses
+    if (message === "VIDEO_NOT_FOUND") {
       return Response.json(
         { status: "error", code: "VIDEO_NOT_FOUND", message: "Video not found" },
         { status: 404 }
       );
     }
-
-    const video = data.items[0];
-    const channelId = video.snippet?.channelId;
-
-    // Validate channel ONLY if no client API key is provided
-    if (!clientApiKey && channelId !== ALLOWED_CHANNEL_ID) {
+    
+    if (message === "CHANNEL_NOT_ALLOWED") {
       return Response.json(
         { 
           status: "error", 
@@ -90,34 +160,28 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-
-    const liveChatId = video.liveStreamingDetails?.activeLiveChatId;
-
-    if (!liveChatId) {
+    
+    if (message === "NO_LIVE_CHAT") {
       return Response.json(
         { status: "error", code: "NO_LIVE_CHAT", message: "This video does not have an active live chat" },
         { status: 400 }
       );
     }
 
-    // Return stream info
-    return Response.json({
-      status: "success",
-      data: {
-        liveChatId,
-        videoId,
-        channelId,
-        channelTitle: video.snippet?.channelTitle,
-        title: video.snippet?.title,
-        thumbnailUrl: video.snippet?.thumbnails?.high?.url,
-        concurrentViewers: video.liveStreamingDetails?.concurrentViewers,
-        actualStartTime: video.liveStreamingDetails?.actualStartTime,
-      }
-    });
+    // Check for quota exceeded
+    if (message.includes("quota") || message.includes("Quota")) {
+      return Response.json(
+        { 
+          status: "error", 
+          code: "QUOTA_EXCEEDED", 
+          message: "API quota exceeded. Try using your own API key (BYOK) or wait until midnight Pacific time." 
+        },
+        { status: 429 }
+      );
+    }
 
-  } catch (error) {
     return Response.json(
-      { status: "error", code: "INTERNAL_ERROR", message: error instanceof Error ? error.message : "Internal server error" },
+      { status: "error", code: "INTERNAL_ERROR", message },
       { status: 500 }
     );
   }

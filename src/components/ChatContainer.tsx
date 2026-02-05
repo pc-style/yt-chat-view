@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowDown, MessageSquare, AlertCircle } from "lucide-react";
+import { ArrowDown, MessageSquare } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import type { ChatMessage as ChatMessageType } from "@/types/youtube";
 import { useCustomization } from "@/lib/hooks/useCustomization";

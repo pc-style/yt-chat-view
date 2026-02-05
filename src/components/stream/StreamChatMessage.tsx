@@ -47,7 +47,7 @@ export function StreamChatMessage({ message, index }: StreamChatMessageProps) {
   const isSpecial = isOwner || isMod || isMember;
   const isSuperChat = message.isSuperChat;
   
-  const { fontSize, fontFamily, borderRadius } = useCustomization();
+  const { fontSize, borderRadius } = useCustomization();
 
   const messageStyle: React.CSSProperties = {
     fontFamily: 'var(--font-family)',
