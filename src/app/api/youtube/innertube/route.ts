@@ -61,18 +61,19 @@ export async function GET(request: NextRequest) {
         }
 
         // Send stream info on connection
-        const snippet = info.basic_info;
-        send({
-          type: "connected",
-          streamInfo: {
-            videoId,
-            channelId: snippet.channel_id || "",
-            channelTitle: snippet.author || "",
-            title: snippet.title || "",
-            thumbnailUrl: snippet.thumbnail?.[0]?.url,
-            concurrentViewers: info.basic_info.view_count?.toString(),
-          },
-        });
+         const snippet = info.basic_info;
+         send({
+           type: "connected",
+           streamInfo: {
+             videoId,
+             channelId: snippet.channel_id || "",
+             channelTitle: snippet.author || "",
+             title: snippet.title || "",
+             thumbnailUrl: snippet.thumbnail?.[0]?.url,
+             // Note: InnerTube API doesn't expose concurrent viewer count (YouTube removed public tracking)
+             // Only official API has liveStreamingDetails.concurrentViewers
+           },
+         });
 
         // Handle chat updates
         livechat.on("chat-update", (action) => {
