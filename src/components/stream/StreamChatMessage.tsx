@@ -94,7 +94,7 @@ export const StreamChatMessage = memo(function StreamChatMessage({ message }: St
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.1 } }}
       transition={springs.smooth}
-      className={`group flex items-start gap-3 px-4 py-2 hover:bg-white/[0.03] transition-colors ${
+      className={`group flex items-start gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors ${
         isSuperChat 
           ? "bg-gradient-to-r from-amber-500/15 via-orange-500/5 to-transparent" 
           : ""
@@ -173,7 +173,7 @@ export const StreamChatMessage = memo(function StreamChatMessage({ message }: St
         </div>
 
         {/* Message text */}
-        <p className="text-white/90 leading-relaxed mt-0.5 font-medium" style={messageStyle}>
+        <p className="text-white/90 leading-snug mt-1 font-medium break-words" style={messageStyle}>
           {message.message}
         </p>
       </div>

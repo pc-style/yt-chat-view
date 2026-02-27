@@ -369,7 +369,7 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
 
           {/* Messages with layout animations */}
           <LayoutGroup>
-            <div className="py-4 space-y-1">
+            <div className="py-4 space-y-0">
               <AnimatePresence mode="popLayout" initial={false}>
                 {messages.map((msg) => (
                   <StreamChatMessage 
