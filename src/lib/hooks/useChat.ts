@@ -205,6 +205,8 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
 
   // InnerTube SSE ref
   const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activeVideoIdRef = useRef<string | null>(null);
   const usingInnerTubeRef = useRef(false);
 
   useEffect(() => {
@@ -225,9 +227,18 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
     }
   }, []);
 
+  const clearReconnectTimer = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }, []);
+
   const disconnect = useCallback(() => {
     stopPolling();
+    clearReconnectTimer();
     closeEventSource();
+    activeVideoIdRef.current = null;
     usingInnerTubeRef.current = false;
     liveChatIdRef.current = null;
     pageTokenRef.current = undefined;
@@ -236,7 +247,7 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
     setStreamInfo(null);
     setError(null);
     setRetryCount(0);
-  }, [stopPolling, closeEventSource]);
+  }, [stopPolling, closeEventSource, clearReconnectTimer]);
 
   // ── Official API Polling (fallback) ──────────────────────
 
@@ -374,6 +385,7 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
 
             switch (data.type) {
               case "connected":
+                clearReconnectTimer();
                 setStreamInfo({
                   videoId,
                   channelId: data.streamInfo.channelId || "",
@@ -417,6 +429,20 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
                   eventSourceRef.current = null;
                   usingInnerTubeRef.current = false;
                   resolve(false);
+                } else {
+                  // Error after successful connection - close and attempt fallback
+                  es.close();
+                  eventSourceRef.current = null;
+                  usingInnerTubeRef.current = false;
+                  if (
+                    connectionStateRef.current === "connected"
+                    && activeVideoIdRef.current === capturedVideoId
+                  ) {
+                    clearReconnectTimer();
+                    setConnectionState("connecting");
+                    // Attempt fallback to official API polling
+                    connectPolling(capturedVideoId);
+                  }
                 }
                 break;
             }
@@ -436,13 +462,30 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
             // Connection lost after successful connect - try to reconnect
             es.close();
             eventSourceRef.current = null;
+            usingInnerTubeRef.current = false;
             // If we were connected, attempt SSE reconnect only if still viewing same video
-            if (connectionStateRef.current === "connected") {
+            if (
+              connectionStateRef.current === "connected"
+              && activeVideoIdRef.current === capturedVideoId
+            ) {
+              clearReconnectTimer();
               setConnectionState("connecting");
-              setTimeout(() => {
-                // Verify we're still watching the same video before reconnecting
-                if (connectionStateRef.current !== "disconnected" && eventSourceRef.current?.url.includes(capturedVideoId)) {
-                  connectInnerTube(capturedVideoId);
+              reconnectTimerRef.current = setTimeout(async () => {
+                reconnectTimerRef.current = null;
+                // Verify we're still on the same video before reconnecting
+                if (
+                  connectionStateRef.current !== "disconnected"
+                  && activeVideoIdRef.current === capturedVideoId
+                ) {
+                  const reconnectSuccess = await connectInnerTube(capturedVideoId);
+                  // If reconnect failed, fallback to official API polling
+                  if (
+                    !reconnectSuccess
+                    && connectionStateRef.current === "connecting"
+                    && activeVideoIdRef.current === capturedVideoId
+                  ) {
+                    await connectPolling(capturedVideoId);
+                  }
                 }
               }, 2000);
             }
@@ -450,7 +493,7 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
         };
       });
     },
-    [maxMessages],
+    [maxMessages, connectPolling, clearReconnectTimer],
   );
 
   // ── Public connect: InnerTube first, then fallback ───────
@@ -469,6 +512,7 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
         setConnectionState("error");
         return;
       }
+      activeVideoIdRef.current = videoId;
 
       // Try InnerTube first (no quota, any channel)
       const innerTubeSuccess = await connectInnerTube(videoId);
@@ -488,9 +532,10 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
   useEffect(() => {
     return () => {
       stopPolling();
+      clearReconnectTimer();
       closeEventSource();
     };
-  }, [stopPolling, closeEventSource]);
+  }, [stopPolling, closeEventSource, clearReconnectTimer]);
 
   return {
     messages,

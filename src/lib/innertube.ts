@@ -14,9 +14,10 @@ import type { ChatMessage, BadgeType, MessageType } from "@/types/youtube";
  * 
  * Module-level setup: runs once per process, not per-request.
  */
-Parser.setParserErrorHandler(({ error_type }) => {
-  if (error_type === "typecheck") return; // Suppress non-fatal type mismatches
-  // All other error types (parse, mutation_data_*, class_not_found, etc.) still log normally
+Parser.setParserErrorHandler((data) => {
+  if (data.error_type === "typecheck") return; // Suppress non-fatal type mismatches
+  // Log all other error types (parse, mutation_data_*, class_not_found, etc.)
+  console.warn(`[InnerTube Parser] ${data.error_type}:`, data);
 });
 
 /**

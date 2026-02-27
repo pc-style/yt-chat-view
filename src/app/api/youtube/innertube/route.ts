@@ -14,6 +14,7 @@
 import type { NextRequest } from "next/server";
 import { YTNodes } from "youtubei.js";
 import { createInnerTube, transformInnerTubeItem } from "@/lib/innertube";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,21 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
+  // Rate limit by IP to prevent resource exhaustion
+  const clientIp = getClientIp(request);
+  const rateCheck = await checkRateLimit(clientIp, "innertube");
+  if (!rateCheck.allowed) {
+    return Response.json(
+      { 
+        status: "error", 
+        code: "RATE_LIMITED", 
+        message: "Too many requests. Please try again shortly.",
+        retryAfterMs: rateCheck.retryAfterMs,
+      },
+      { status: 429 }
+    );
+  }
+
   const videoId = request.nextUrl.searchParams.get("videoId");
 
   if (!videoId) {

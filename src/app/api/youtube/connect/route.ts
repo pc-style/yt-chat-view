@@ -148,8 +148,13 @@ export async function POST(request: NextRequest) {
     // Channel verification -- always checked for server-key requests,
     // regardless of whether video details came from cache.
     // verifyChannel has its own 1-hour cache so repeated checks are cheap.
-    if (!clientApiKey && result.data.channelId) {
-      const verification = await verifyChannel(result.data.channelId, apiKey);
+    if (!clientApiKey) {
+      const channelId = result.data.channelId.trim();
+      if (!channelId) {
+        throw new Error("CHANNEL_ID_MISSING");
+      }
+
+      const verification = await verifyChannel(channelId, apiKey);
       if (!verification) {
         throw new Error("QUOTA_EXCEEDED");
       }
@@ -194,6 +199,17 @@ export async function POST(request: NextRequest) {
       return Response.json(
         { status: "error", code: "CHANNEL_NOT_FOUND", message: "Channel not found" },
         { status: 404 }
+      );
+    }
+
+    if (message === "CHANNEL_ID_MISSING") {
+      return Response.json(
+        {
+          status: "error",
+          code: "CHANNEL_ID_MISSING",
+          message: "Could not identify the channel for this stream. Please try a different stream or use BYOK.",
+        },
+        { status: 403 }
       );
     }
     

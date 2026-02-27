@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, memo, useMemo } from "react";
+import { useState, memo, useMemo, forwardRef } from "react";
 import Image from "next/image";
 import { LazyMotion, m } from "framer-motion";
 import { domAnimation } from "framer-motion";
@@ -60,7 +60,10 @@ const RADIUS_MAP: Record<string, string> = {
  * 
  * Memoized to prevent unnecessary re-renders during rapid chat updates
  */
-export const StreamChatMessage = memo(function StreamChatMessage({ message }: StreamChatMessageProps) {
+const StreamChatMessageBase = forwardRef<HTMLElement, StreamChatMessageProps>(function StreamChatMessage(
+  { message },
+  ref,
+) {
   const [imgError, setImgError] = useState(false);
   const { fontSize, borderRadius } = useCustomization();
   
@@ -92,6 +95,7 @@ export const StreamChatMessage = memo(function StreamChatMessage({ message }: St
   return (
     <LazyMotion features={domAnimation}>
       <m.article
+        ref={ref}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, transition: { duration: 0.1 } }}
@@ -185,5 +189,8 @@ export const StreamChatMessage = memo(function StreamChatMessage({ message }: St
   );
 });
 
+export const StreamChatMessage = memo(StreamChatMessageBase);
+
 // Display name for debugging
+StreamChatMessageBase.displayName = "StreamChatMessageBase";
 StreamChatMessage.displayName = 'StreamChatMessage';

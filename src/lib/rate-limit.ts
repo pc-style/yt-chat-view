@@ -26,6 +26,8 @@ const IP_CONNECT_LIMIT = 10; // connect requests per window
 const IP_CONNECT_WINDOW_MS = 60 * 1000; // 1 minute
 const IP_MESSAGES_LIMIT = 60; // message requests per window
 const IP_MESSAGES_WINDOW_MS = 60 * 1000; // 1 minute
+const IP_INNERTUBE_LIMIT = 60; // innertube SSE connections per window
+const IP_INNERTUBE_WINDOW_MS = 60 * 1000; // 1 minute
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -40,6 +42,8 @@ interface RateLimitEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>();
 let quotaUsed = 0;
 let quotaResetAt = getNextMidnightPacific();
+const MEMORY_PRUNE_THRESHOLD = 1000;
+const MEMORY_PRUNE_PROBABILITY = 0.02;
 
 function getNextMidnightPacific(): number {
   const now = new Date();
@@ -53,6 +57,14 @@ function getNextMidnightPacific(): number {
 /** Today's date in Pacific time as YYYY-MM-DD (used as Redis key suffix) */
 function getPacificDateKey(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+}
+
+function pruneExpiredRateLimitEntries(now: number): void {
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (entry.resetAt <= now) {
+      rateLimitStore.delete(key);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -77,13 +89,14 @@ async function checkRateLimitRedis(
 
   try {
     const count = await client.incr(key);
-    if (count === 1) {
+    const ttl = await client.ttl(key);
+    if (ttl < 0) {
       await client.expire(key, windowSeconds);
     }
 
     if (count > limit) {
-      const ttl = await client.ttl(key);
-      return { allowed: false, retryAfterMs: Math.max(ttl * 1000, 1000) };
+      const retryAfterSeconds = ttl < 0 ? windowSeconds : ttl;
+      return { allowed: false, retryAfterMs: Math.max(retryAfterSeconds * 1000, 1000) };
     }
 
     return { allowed: true };
@@ -101,6 +114,11 @@ function checkRateLimitMemory(
 ): { allowed: true } | { allowed: false; retryAfterMs: number } {
   const key = `${ip}:${action}`;
   const now = Date.now();
+
+  if (rateLimitStore.size > MEMORY_PRUNE_THRESHOLD && Math.random() < MEMORY_PRUNE_PROBABILITY) {
+    pruneExpiredRateLimitEntries(now);
+  }
+
   const entry = rateLimitStore.get(key);
 
   if (!entry || entry.resetAt < now) {
@@ -122,10 +140,25 @@ function checkRateLimitMemory(
  */
 export async function checkRateLimit(
   ip: string,
-  action: "connect" | "messages",
+  action: "connect" | "messages" | "innertube",
 ): Promise<{ allowed: true } | { allowed: false; retryAfterMs: number }> {
-  const limit = action === "connect" ? IP_CONNECT_LIMIT : IP_MESSAGES_LIMIT;
-  const windowMs = action === "connect" ? IP_CONNECT_WINDOW_MS : IP_MESSAGES_WINDOW_MS;
+  let limit: number;
+  let windowMs: number;
+
+  switch (action) {
+    case "connect":
+      limit = IP_CONNECT_LIMIT;
+      windowMs = IP_CONNECT_WINDOW_MS;
+      break;
+    case "messages":
+      limit = IP_MESSAGES_LIMIT;
+      windowMs = IP_MESSAGES_WINDOW_MS;
+      break;
+    case "innertube":
+      limit = IP_INNERTUBE_LIMIT;
+      windowMs = IP_INNERTUBE_WINDOW_MS;
+      break;
+  }
 
   const redisResult = await checkRateLimitRedis(ip, action, limit, windowMs);
   if (redisResult) return redisResult;
