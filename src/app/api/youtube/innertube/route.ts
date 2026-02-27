@@ -44,16 +44,7 @@ export async function GET(request: NextRequest) {
 
       try {
          const yt = await createInnerTube();
-         // Suppress YouTubejs parser warnings (known upstream issue)
-         const originalWarn = console.warn;
-         console.warn = (...args: unknown[]) => {
-           const msg = args?.[0]?.toString() || "";
-           if (!msg.includes("[YOUTUBEJS][Parser]")) {
-             originalWarn(...args);
-           }
-         };
          const info = await yt.getInfo(videoId);
-         console.warn = originalWarn;
 
         // Check if video has live chat
         let livechat;

@@ -4,8 +4,20 @@
  * Server-side only
  */
 
-import { Innertube, UniversalCache, YTNodes } from "youtubei.js";
+import { Innertube, UniversalCache, YTNodes, Parser } from "youtubei.js";
 import type { ChatMessage, BadgeType, MessageType } from "@/types/youtube";
+
+/**
+ * Suppress non-fatal parser type mismatches from YouTube API schema drift.
+ * These occur when YouTube serves ListItemView in context menus instead of
+ * expected MenuServiceItem | MenuServiceItemDownload. Safe to ignore.
+ * 
+ * Module-level setup: runs once per process, not per-request.
+ */
+Parser.setParserErrorHandler(({ error_type }) => {
+  if (error_type === "typecheck") return; // Suppress non-fatal type mismatches
+  // All other error types (parse, mutation_data_*, class_not_found, etc.) still log normally
+});
 
 /**
  * Create a fresh Innertube instance
