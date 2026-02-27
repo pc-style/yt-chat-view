@@ -4,9 +4,10 @@ import {
   hashApiKey, 
   getOrFetch 
 } from "@/lib/cache";
+import { checkRateLimit, consumeQuota, getClientIp } from "@/lib/rate-limit";
+import { verifyChannel } from "@/lib/channel-verify";
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
-const ALLOWED_CHANNEL_ID = "UCbRP3c757lWg9M-U7TyEkXA";
 
 // Cache TTL for video details (60 seconds)
 const VIDEO_CACHE_TTL_MS = 60 * 1000;
@@ -44,8 +45,9 @@ interface ConnectData {
 
 /**
  * POST /api/youtube/connect
- * Validates video belongs to allowed channel and returns live chat ID
- * Now with server-side caching to reduce API quota usage
+ * Validates video belongs to a verified channel (100K+ subscribers) and returns live chat ID.
+ * BYOK mode bypasses channel verification.
+ * Includes per-IP rate limiting and global quota tracking.
  */
 export async function POST(request: NextRequest) {
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -54,6 +56,21 @@ export async function POST(request: NextRequest) {
     return Response.json(
       { status: "error", code: "MISSING_API_KEY", message: "YouTube API key not configured" },
       { status: 500 }
+    );
+  }
+
+  // Rate limit by IP
+  const clientIp = getClientIp(request);
+  const rateCheck = await checkRateLimit(clientIp, "connect");
+  if (!rateCheck.allowed) {
+    return Response.json(
+      { 
+        status: "error", 
+        code: "RATE_LIMITED", 
+        message: "Too many requests. Please try again shortly.",
+        retryAfterMs: rateCheck.retryAfterMs,
+      },
+      { status: 429 }
     );
   }
 
@@ -74,10 +91,15 @@ export async function POST(request: NextRequest) {
     // Generate cache key
     const cacheKey = getCacheKey("connect", videoId, apiKeyId);
 
-    // Try to get from cache or fetch fresh
+    // Fetch video details (cached separately from verification)
     const result = await getOrFetch<ConnectData>(
       cacheKey,
       async () => {
+        // Check global quota before making API call (skip for BYOK)
+        if (!clientApiKey && !(await consumeQuota("videos.list"))) {
+          throw new Error("QUOTA_EXCEEDED");
+        }
+
         // Fetch video details from YouTube
         const params = new URLSearchParams({
           part: "snippet,liveStreamingDetails",
@@ -100,12 +122,6 @@ export async function POST(request: NextRequest) {
 
         const video = data.items[0];
         const channelId = video.snippet?.channelId;
-
-        // Validate channel ONLY if no client API key is provided
-        if (!clientApiKey && channelId !== ALLOWED_CHANNEL_ID) {
-          throw new Error("CHANNEL_NOT_ALLOWED");
-        }
-
         const liveChatId = video.liveStreamingDetails?.activeLiveChatId;
 
         if (!liveChatId) {
@@ -129,6 +145,19 @@ export async function POST(request: NextRequest) {
       { staleWhileRevalidate: true }
     );
 
+    // Channel verification -- always checked for server-key requests,
+    // regardless of whether video details came from cache.
+    // verifyChannel has its own 1-hour cache so repeated checks are cheap.
+    if (!clientApiKey && result.data.channelId) {
+      const verification = await verifyChannel(result.data.channelId, apiKey);
+      if (!verification) {
+        throw new Error("QUOTA_EXCEEDED");
+      }
+      if (!verification.verified) {
+        throw new Error("CHANNEL_NOT_VERIFIED");
+      }
+    }
+
     // Return stream info with cache metadata
     return Response.json({
       status: "success",
@@ -150,14 +179,21 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (message === "CHANNEL_NOT_ALLOWED") {
+    if (message === "CHANNEL_NOT_VERIFIED") {
       return Response.json(
         { 
           status: "error", 
-          code: "CHANNEL_NOT_ALLOWED", 
-          message: "Only streams from @t3dotgg are allowed unless you use your own API Key (BYOK)" 
+          code: "CHANNEL_NOT_VERIFIED", 
+          message: "Only verified YouTube channels (100K+ subscribers) are supported. Use your own API key (BYOK) for other channels." 
         },
         { status: 403 }
+      );
+    }
+
+    if (message === "CHANNEL_NOT_FOUND") {
+      return Response.json(
+        { status: "error", code: "CHANNEL_NOT_FOUND", message: "Channel not found" },
+        { status: 404 }
       );
     }
     
@@ -169,7 +205,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for quota exceeded
-    if (message.includes("quota") || message.includes("Quota")) {
+    if (message.includes("quota") || message.includes("Quota") || message === "QUOTA_EXCEEDED") {
       return Response.json(
         { 
           status: "error", 

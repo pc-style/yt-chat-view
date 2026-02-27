@@ -9,38 +9,7 @@
  * - Graceful degradation when Redis is unavailable
  */
 
-import type { Redis as UpstashRedis } from "@upstash/redis";
-
-let redis: UpstashRedis | null = null;
-let redisInitialized = false;
-
-/**
- * Lazily initialize Redis client
- */
-async function getRedis(): Promise<UpstashRedis | null> {
-  if (redisInitialized) return redis;
-  
-  redisInitialized = true;
-  
-  // Check for Upstash Redis environment variables
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  
-  if (!url || !token) {
-    console.warn("[Cache] Upstash Redis not configured - using in-memory cache only");
-    return null;
-  }
-  
-  try {
-    const { Redis } = await import("@upstash/redis");
-    redis = new Redis({ url, token });
-    console.log("[Cache] Upstash Redis connected");
-    return redis;
-  } catch (e) {
-    console.warn("[Cache] Failed to initialize Upstash Redis:", e);
-    return null;
-  }
-}
+import { getRedis } from "@/lib/redis";
 
 /**
  * L1 in-memory cache for warm serverless instances

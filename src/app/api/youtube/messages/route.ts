@@ -5,6 +5,7 @@ import {
   getOrFetch,
   getStoredPageToken 
 } from "@/lib/cache";
+import { checkRateLimit, consumeQuota, getClientIp } from "@/lib/rate-limit";
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 
@@ -78,6 +79,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Rate limit by IP
+  const clientIp = getClientIp(request);
+  const rateCheck = await checkRateLimit(clientIp, "messages");
+  if (!rateCheck.allowed) {
+    return Response.json(
+      { 
+        status: "error", 
+        code: "RATE_LIMITED", 
+        message: "Too many requests. Please try again shortly.",
+        retryAfterMs: rateCheck.retryAfterMs,
+      },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { liveChatId, apiKey: clientApiKey } = body;
@@ -100,6 +116,11 @@ export async function POST(request: NextRequest) {
     const result = await getOrFetch<MessagesData>(
       cacheKey,
       async () => {
+        // Check global quota before making API call (skip for BYOK)
+        if (!clientApiKey && !(await consumeQuota("liveChatMessages.list"))) {
+          throw new Error("QUOTA_EXCEEDED");
+        }
+
         // Get server-stored pageToken for this liveChatId
         const storedPageToken = await getStoredPageToken(cacheKey);
 
