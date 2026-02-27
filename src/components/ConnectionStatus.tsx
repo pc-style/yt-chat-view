@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { LazyMotion, m } from "framer-motion";
+import { domAnimation } from "framer-motion";
 import { Wifi, WifiOff, Loader2, AlertCircle, Moon, Zap } from "lucide-react";
 import type { ConnectionState } from "@/types/youtube";
 import { springs } from "@/lib/motion";
@@ -61,50 +62,52 @@ export function ConnectionStatus({ state, error, isDemo }: ConnectionStatusProps
   const displayBg = isDemo ? "bg-accent/10" : config.bgColor;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={springs.snappy}
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${displayColor} ${displayBg} border border-current/20`}
-      role="status"
-      aria-live="polite"
-      aria-label={`Connection status: ${displayLabel}`}
-    >
-      {/* Animated icon container */}
-      <motion.div
-        className="relative"
-        animate={config.pulse && !isDemo ? {
-          scale: [1, 1.2, 1],
-        } : {}}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
+    <LazyMotion features={domAnimation}>
+      <m.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={springs.snappy}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${displayColor} ${displayBg} border border-current/20`}
+        role="status"
+        aria-live="polite"
+        aria-label={`Connection status: ${displayLabel}`}
       >
-        <Icon
-          className={`h-3.5 w-3.5 ${isSpinning ? "animate-spin" : ""}`}
-          aria-hidden="true"
-        />
-        {/* Live pulse indicator */}
-        {(config.pulse || isDemo) && state === "connected" && (
-          <motion.div
-            className="absolute inset-0 rounded-full"
-            style={{ backgroundColor: "currentColor" }}
-            animate={{
-              opacity: [0.5, 0, 0.5],
-              scale: [1, 2, 1],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeOut",
-            }}
+        {/* Animated icon container */}
+        <m.div
+          className="relative"
+          animate={config.pulse && !isDemo ? {
+            scale: [1, 1.2, 1],
+          } : {}}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          <Icon
+            className={`h-3.5 w-3.5 ${isSpinning ? "animate-spin" : ""}`}
+            aria-hidden="true"
           />
-        )}
-      </motion.div>
-      
-      <span className="truncate max-w-[120px]">{displayLabel}</span>
-    </motion.div>
+          {/* Live pulse indicator */}
+          {(config.pulse || isDemo) && state === "connected" && (
+            <m.div
+              className="absolute inset-0 rounded-full"
+              style={{ backgroundColor: "currentColor" }}
+              animate={{
+                opacity: [0.5, 0, 0.5],
+                scale: [1, 2, 1],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeOut",
+              }}
+            />
+          )}
+        </m.div>
+        
+        <span className="truncate max-w-[120px]">{displayLabel}</span>
+      </m.div>
+    </LazyMotion>
   );
 }

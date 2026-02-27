@@ -365,6 +365,8 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
         usingInnerTubeRef.current = true;
 
         let resolved = false;
+        // Capture videoId in closure to detect stale reconnect attempts
+        const capturedVideoId = videoId;
 
         es.onmessage = (event) => {
           try {
@@ -434,12 +436,13 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
             // Connection lost after successful connect - try to reconnect
             es.close();
             eventSourceRef.current = null;
-            // If we were connected, attempt SSE reconnect
+            // If we were connected, attempt SSE reconnect only if still viewing same video
             if (connectionStateRef.current === "connected") {
               setConnectionState("connecting");
               setTimeout(() => {
-                if (connectionStateRef.current !== "disconnected") {
-                  connectInnerTube(videoId);
+                // Verify we're still watching the same video before reconnecting
+                if (connectionStateRef.current !== "disconnected" && eventSourceRef.current?.url.includes(capturedVideoId)) {
+                  connectInnerTube(capturedVideoId);
                 }
               }, 2000);
             }

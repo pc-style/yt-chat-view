@@ -71,7 +71,7 @@ export function getCacheKey(type: "connect" | "messages", id: string, apiKeyId: 
 /**
  * Generate lock key for distributed locking
  */
-export function getLockKey(cacheKey: string): string {
+function getLockKey(cacheKey: string): string {
   return `${cacheKey}:lock`;
 }
 

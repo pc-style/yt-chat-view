@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { LazyMotion, m, AnimatePresence } from "framer-motion";
+import { domAnimation } from "framer-motion";
 import { Pause, Play, FastForward, RotateCcw, ChevronDown, Zap } from "lucide-react";
 import type { PlaybackSpeed } from "@/lib/hooks/useDemoChat";
 
 interface DemoControlsProps {
-  speed: PlaybackSpeed;
+  speed: number | PlaybackSpeed;
   setSpeed: (speed: PlaybackSpeed) => void;
   isPaused: boolean;
   pause: () => void;
@@ -57,9 +58,10 @@ export function DemoControls({
         {/* Speed indicator */}
         <button
           onClick={() => {
-            const currentIndex = SPEED_OPTIONS.indexOf(speed);
+            const currentIndex = SPEED_OPTIONS.indexOf(speed as PlaybackSpeed);
             const nextIndex = (currentIndex + 1) % SPEED_OPTIONS.length;
-            setSpeed(SPEED_OPTIONS[nextIndex]);
+            const nextSpeed = SPEED_OPTIONS[nextIndex] as PlaybackSpeed;
+            setSpeed(nextSpeed);
           }}
           className="text-[10px] font-bold text-white/40 hover:text-white/60 transition-colors min-w-[28px]"
           aria-label={`Change speed (current: ${speed}x)`}
@@ -91,7 +93,8 @@ export function DemoControls({
 
   // Collapsible full controls
   return (
-    <div className="w-full">
+    <LazyMotion features={domAnimation}>
+      <div className="w-full">
       {/* Collapsed toggle bar - using div with role="button" to allow nested button */}
       <div
         role="button"
@@ -151,7 +154,7 @@ export function DemoControls({
       {/* Expanded controls */}
       <AnimatePresence>
         {isExpanded && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -203,9 +206,10 @@ export function DemoControls({
                 ))}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </LazyMotion>
   );
 }

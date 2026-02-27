@@ -8,8 +8,9 @@ export type ChatStyle = "compact" | "comfy";
 export type ThemePreset = "original" | "dark" | "oled" | "light" | "creamy";
 export type FontFamily = "system" | "geist" | "inter" | "mono" | "serif";
 export type BorderRadius = "none" | "small" | "medium" | "large" | "full";
-export type MessageAlign = "left" | "center";
 export type SidebarPosition = "left" | "right";
+
+type MessageAlign = "left" | "center";
 
 interface CustomizationState {
   // Visuals

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { LazyMotion, m, AnimatePresence } from "framer-motion";
+import { domAnimation } from "framer-motion";
 import { Menu, X, MessageSquare } from "lucide-react";
 import { springs } from "@/lib/motion";
 
@@ -18,9 +19,10 @@ export function MobileNav({ children, accentColor }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <>
-      {/* Mobile menu button - only visible on small screens */}
-      <motion.button
+    <LazyMotion features={domAnimation}>
+      <>
+        {/* Mobile menu button - only visible on small screens */}
+        <m.button
         onClick={() => setIsOpen(true)}
         className="md:hidden fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-2xl shadow-2xl"
         style={{
@@ -34,14 +36,14 @@ export function MobileNav({ children, accentColor }: MobileNavProps) {
         aria-expanded={isOpen}
       >
         <Menu className="h-6 w-6 text-white" />
-      </motion.button>
+      </m.button>
 
       {/* Mobile drawer overlay */}
       <AnimatePresence>
         {isOpen && (
           <>
             {/* Backdrop */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -52,7 +54,7 @@ export function MobileNav({ children, accentColor }: MobileNavProps) {
             />
 
             {/* Drawer */}
-            <motion.div
+            <m.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
@@ -74,7 +76,7 @@ export function MobileNav({ children, accentColor }: MobileNavProps) {
                   <span className="text-lg font-black tracking-tight text-text-v1">Settings</span>
                 </div>
                 
-                <motion.button
+                <m.button
                   onClick={() => setIsOpen(false)}
                   className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-muted hover:bg-surface-hover text-text-v5 hover:text-text-v1 transition-colors"
                   whileHover={{ scale: 1.05 }}
@@ -82,17 +84,18 @@ export function MobileNav({ children, accentColor }: MobileNavProps) {
                   aria-label="Close settings menu"
                 >
                   <X className="h-5 w-5" />
-                </motion.button>
+                </m.button>
               </div>
 
               {/* Drawer content - scrollable */}
               <div className="h-[calc(100%-76px)] overflow-y-auto custom-scrollbar">
                 {children}
               </div>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>
-    </>
+      </>
+    </LazyMotion>
   );
 }

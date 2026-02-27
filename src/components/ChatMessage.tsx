@@ -122,15 +122,16 @@ export const ChatMessage = memo(function ChatMessage({ message }: ChatMessagePro
                 src={message.authorAvatarUrl}
                 alt=""
                 fill
+                sizes="16px"
                 className="object-cover"
                 unoptimized
                 onError={() => setImgError(true)}
               />
             )}
-          </div>
-        )}
+            </div>
+            )}
 
-        {/* Badges (compact) */}
+            {/* Badges (compact) */}
         {showBadges && message.badges.length > 0 && (
           <div className="flex gap-0.5 shrink-0 scale-75 origin-left">
             {message.badges.map((badge) => (
@@ -189,16 +190,17 @@ export const ChatMessage = memo(function ChatMessage({ message }: ChatMessagePro
                 src={message.authorAvatarUrl}
                 alt=""
                 fill
+                sizes="(max-width: 640px) 32px, 36px"
                 className="object-cover"
                 unoptimized
                 onError={() => setImgError(true)}
               />
             )}
-          </div>
-        </div>
-      )}
+            </div>
+            </div>
+            )}
 
-      <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+            <div className="min-w-0 flex-1 flex flex-col gap-0.5">
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {/* Super Chat - Show first for visibility */}
           {message.isSuperChat && message.superChatAmount && (

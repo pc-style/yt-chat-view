@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Internal server error";
 
     // Check for quota exceeded
-    if (message.includes("quota") || message.includes("Quota")) {
+    if (message === "QUOTA_EXCEEDED" || message.includes("quota") || message.includes("Quota")) {
       return Response.json(
         { 
           status: "error", 

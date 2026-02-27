@@ -124,13 +124,6 @@ function toChatMessage(msg: DemoMessage, index: number): ChatMessage {
 }
 
 /**
- * Get all demo messages as ChatMessage array
- */
-export function getDemoMessages(): ChatMessage[] {
-  return DEMO_MESSAGES.map((msg, i) => toChatMessage(msg, i));
-}
-
-/**
  * Get demo messages with their intended delays
  */
 export function getDemoMessagesWithDelays(): Array<{ message: ChatMessage; delay: number }> {

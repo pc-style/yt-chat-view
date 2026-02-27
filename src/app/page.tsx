@@ -10,7 +10,8 @@ import {
   Play,
   Zap
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { LazyMotion, m } from "framer-motion";
+import { domAnimation } from "framer-motion";
 import { ChatContainer } from "@/components/ChatContainer";
 import { ChatInput } from "@/components/ChatInput";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
@@ -32,7 +33,7 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
   const { accentColor } = useCustomization();
   
   return (
-    <motion.div 
+    <m.div 
       className="flex flex-col items-center justify-center h-full px-8"
       initial={{ opacity: 0, y: 30, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -43,7 +44,7 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
       }}
     >
       {/* Glassmorphism Card */}
-      <motion.div 
+      <m.div 
         className="relative p-8 rounded-3xl border backdrop-blur-xl max-w-md w-full text-center overflow-hidden"
         style={{
           background: 'rgba(255, 255, 255, 0.03)',
@@ -57,7 +58,7 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
       >
         {/* Shimmer effect */}
-        <motion.div
+        <m.div
           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none"
           initial={{ x: "-100%" }}
           animate={{ x: "200%" }}
@@ -65,7 +66,7 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
         />
         
         {/* Accent glow orb */}
-        <motion.div 
+        <m.div 
           className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full blur-3xl"
           style={{ backgroundColor: accentColor }}
           animate={{
@@ -80,7 +81,7 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
         />
         
         {/* Icon */}
-        <motion.div 
+        <m.div 
           className="relative mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border"
           style={{
             background: `linear-gradient(135deg, ${accentColor}20, ${accentColor}05)`,
@@ -97,27 +98,27 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
           whileHover={{ scale: 1.1, rotate: 5 }}
         >
           <MessageSquare className="h-8 w-8" style={{ color: accentColor }} />
-        </motion.div>
+        </m.div>
         
-        <motion.h1 
+        <m.h1 
           className="text-2xl font-black text-text-v1 mb-2 tracking-tight"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           Welcome to T3 Chat
-        </motion.h1>
-        <motion.p 
+        </m.h1>
+        <m.p 
           className="text-sm text-text-v5 mb-6 leading-relaxed"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
         >
           Connect to authorized YouTube live streams and view the chat in real-time with custom styling.
-        </motion.p>
+        </m.p>
         
         {/* Demo Mode Button */}
-        <motion.button
+        <m.button
           onClick={onStartDemo}
           className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all"
           style={{
@@ -136,13 +137,13 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
         >
           <Play className="h-4 w-4 fill-current" />
           Try Live Demo
-        </motion.button>
+        </m.button>
         
         <p className="text-[10px] text-text-v5/60 mt-4">
           Or paste a live stream URL below to connect
         </p>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }
 
@@ -165,7 +166,7 @@ function StreamInfoBar({ streamInfo, isDemo }: { streamInfo: { channelTitle: str
   return (
     <div className="flex items-center gap-4 text-xs text-text-v5">
       {isDemo && (
-        <motion.span 
+        <m.span 
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
           style={{
             background: `linear-gradient(135deg, ${accentColor}30, ${accentColor}15)`,
@@ -183,7 +184,7 @@ function StreamInfoBar({ streamInfo, isDemo }: { streamInfo: { channelTitle: str
         >
           <Zap className="h-3 w-3" />
           Demo
-        </motion.span>
+        </m.span>
       )}
       <span className="font-semibold text-text-v3">{streamInfo.channelTitle}</span>
       <span className="hidden sm:inline truncate max-w-[200px]">{streamInfo.title}</span>
@@ -311,8 +312,9 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
   };
 
   return (
-    <div className="flex h-screen bg-background text-text-v3 selection:bg-accent/30 overflow-hidden">
-      {/* Quota Error Modal */}
+    <LazyMotion features={domAnimation}>
+      <div className="flex h-screen bg-background text-text-v3 selection:bg-accent/30 overflow-hidden">
+        {/* Quota Error Modal */}
       <QuotaErrorBoundary 
         error={error} 
         onDismiss={clearError} 
@@ -332,7 +334,7 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
         
         {/* Floating Exit Focus Mode Button */}
         {focusMode && (
-          <motion.button
+          <m.button
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={() => updateField("focusMode", false)}
@@ -341,7 +343,7 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
             aria-label="Exit Focus Mode"
           >
             <Maximize className="h-5 w-5 rotate-180" />
-          </motion.button>
+          </m.button>
         )}
 
         {/* Transparent App Header - Hidden in Focus Mode */}
@@ -447,6 +449,7 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </LazyMotion>
   );
 }

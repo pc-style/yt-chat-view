@@ -42,7 +42,7 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
   });
 
   const chat = isDemo ? demoChat : liveChat;
-  const { messages, connectionState, disconnect, clearMessages } = chat;
+  const { messages, connectionState, streamInfo, disconnect, clearMessages } = chat;
 
   // Extract demo-specific controls
   const demoControls = isDemo ? {

@@ -2,7 +2,8 @@
 
 import { useState, memo, useMemo } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { LazyMotion, m } from "framer-motion";
+import { domAnimation } from "framer-motion";
 import type { ChatMessage as ChatMessageType } from "@/types/youtube";
 import { springs } from "@/lib/motion";
 import { useCustomization } from "@/lib/hooks/useCustomization";
@@ -89,21 +90,22 @@ export const StreamChatMessage = memo(function StreamChatMessage({ message }: St
   const itemRadius = RADIUS_MAP[borderRadius] || '12px';
 
   return (
-    <motion.article
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.1 } }}
-      transition={springs.smooth}
-      className={`group flex items-start gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors ${
-        isSuperChat 
-          ? "bg-gradient-to-r from-amber-500/15 via-orange-500/5 to-transparent" 
-          : ""
-      }`}
-      style={{
-        borderLeft: isSuperChat ? `3px solid ${message.superChatColor}` : undefined,
-        borderRadius: itemRadius,
-      }}
-    >
+    <LazyMotion features={domAnimation}>
+      <m.article
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, transition: { duration: 0.1 } }}
+        transition={springs.smooth}
+        className={`group flex items-start gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors ${
+          isSuperChat 
+            ? "bg-gradient-to-r from-amber-500/15 via-orange-500/5 to-transparent" 
+            : ""
+        }`}
+        style={{
+          borderLeft: isSuperChat ? `3px solid ${message.superChatColor}` : undefined,
+          borderRadius: itemRadius,
+        }}
+      >
       {/* Avatar */}
       <div className={`relative shrink-0 ${isSpecial ? "p-0.5" : ""}`}>
         {isSpecial && (
@@ -125,6 +127,7 @@ export const StreamChatMessage = memo(function StreamChatMessage({ message }: St
               src={message.authorAvatarUrl}
               alt=""
               fill
+              sizes="32px"
               className="object-cover"
               unoptimized
               onError={() => setImgError(true)}
@@ -177,7 +180,8 @@ export const StreamChatMessage = memo(function StreamChatMessage({ message }: St
           {message.message}
         </p>
       </div>
-    </motion.article>
+    </m.article>
+    </LazyMotion>
   );
 });
 
