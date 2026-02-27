@@ -122,7 +122,7 @@ export function DemoControls({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              isPaused ? resume() : pause();
+              if (isPaused) { resume(); } else { pause(); }
             }}
             className="p-1 rounded bg-white/5 hover:bg-white/10 transition-colors"
             aria-label={isPaused ? "Resume" : "Pause"}

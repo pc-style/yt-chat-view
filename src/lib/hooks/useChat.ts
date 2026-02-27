@@ -73,7 +73,6 @@ const MAX_RETRY_DELAY = 30000;
  */
 function getRetryDelay(attempt: number): number {
   const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
-  // Add jitter to prevent thundering herd
   const jitter = Math.random() * 1000;
   return Math.min(delay + jitter, MAX_RETRY_DELAY);
 }
@@ -93,6 +92,10 @@ function getReadableError(error: string): string {
     "not a live stream": "This video is not currently live streaming",
     "QUOTA_EXCEEDED": "Daily API quota reached - try Demo Mode or add your own API key",
     "RATE_LIMITED": "Rate limited - please wait a moment",
+    "CHANNEL_NOT_VERIFIED": "Only verified channels (100K+ subs) are supported without an API key",
+    "CHANNEL_NOT_FOUND": "Channel not found - check the video URL",
+    "NO_LIVE_CHAT": "This video does not have an active live chat",
+    "INNERTUBE_ERROR": "Failed to connect via InnerTube - trying fallback",
   };
 
   for (const [key, message] of Object.entries(errorMap)) {
@@ -179,11 +182,11 @@ function transformMessage(msg: ApiMessage): ChatMessage {
 }
 
 /**
- * Hook for managing YouTube Live Chat polling via server API
- * Features:
- * - Exponential backoff for retries
- * - Better error messages
- * - Retry counter for UI feedback
+ * Hook for managing YouTube Live Chat
+ * 
+ * Strategy: InnerTube SSE (primary) → Official API polling (fallback)
+ * - InnerTube: No API key needed, no quota, works for any channel
+ * - Official API: Used as fallback if InnerTube fails, requires API key
  */
 export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): UseChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -192,15 +195,18 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
+  // Polling refs (official API fallback)
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const liveChatIdRef = useRef<string | null>(null);
   const pageTokenRef = useRef<string | undefined>(undefined);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const consecutiveErrorsRef = useRef(0);
-  // Track connection state in ref to avoid stale closure in polling loop
   const connectionStateRef = useRef<ConnectionState>(connectionState);
-  
-  // Keep ref in sync with state
+
+  // InnerTube SSE ref
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const usingInnerTubeRef = useRef(false);
+
   useEffect(() => {
     connectionStateRef.current = connectionState;
   }, [connectionState]);
@@ -212,8 +218,17 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
     }
   }, []);
 
+  const closeEventSource = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+  }, []);
+
   const disconnect = useCallback(() => {
     stopPolling();
+    closeEventSource();
+    usingInnerTubeRef.current = false;
     liveChatIdRef.current = null;
     pageTokenRef.current = undefined;
     consecutiveErrorsRef.current = 0;
@@ -221,7 +236,9 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
     setStreamInfo(null);
     setError(null);
     setRetryCount(0);
-  }, [stopPolling]);
+  }, [stopPolling, closeEventSource]);
+
+  // ── Official API Polling (fallback) ──────────────────────
 
   const pollMessages = useCallback(async () => {
     if (!liveChatIdRef.current) return;
@@ -245,29 +262,24 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
 
       const data = result.data;
 
-      // Success - reset error counter
       consecutiveErrorsRef.current = 0;
       setRetryCount(0);
       setError(null);
       
-      // Ensure we're marked as connected (use ref to avoid stale closure)
       if (connectionStateRef.current !== "connected") {
         setConnectionState("connected");
       }
 
-      // Check if stream went offline
       if (data.offlineAt) {
         setConnectionState("offline");
         stopPolling();
         return;
       }
 
-      // Transform and deduplicate messages
       const newMessages = data.items
         .map(transformMessage)
         .filter((msg: ChatMessage) => !seenIdsRef.current.has(msg.id));
 
-      // Track seen message IDs
       newMessages.forEach((msg: ChatMessage) => seenIdsRef.current.add(msg.id));
 
       if (newMessages.length > 0) {
@@ -290,7 +302,6 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
       setError(readableMessage);
       setRetryCount(errorCount);
       
-      // Check if we should keep retrying
       if (errorCount >= MAX_RETRIES) {
         setConnectionState("error");
         stopPolling();
@@ -298,28 +309,15 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
         return;
       }
       
-      // Exponential backoff retry
       setConnectionState("error");
       const delay = getRetryDelay(errorCount);
       pollingRef.current = setTimeout(pollMessages, delay);
     }
   }, [maxMessages, stopPolling, apiKey]);
 
-  const connect = useCallback(
-    async (videoUrl: string) => {
-      disconnect();
-      setError(null);
-      setConnectionState("connecting");
-      seenIdsRef.current.clear();
-      setMessages([]);
-
+  const connectPolling = useCallback(
+    async (videoId: string) => {
       try {
-        const videoId = extractVideoId(videoUrl);
-        if (!videoId) {
-          throw new Error("Invalid YouTube URL or video ID");
-        }
-
-        // Call server API to validate and get live chat ID
         const response = await fetch("/api/youtube/connect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -354,7 +352,129 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
         setConnectionState("error");
       }
     },
-    [disconnect, pollMessages, apiKey]
+    [pollMessages, apiKey],
+  );
+
+  // ── InnerTube SSE (primary) ──────────────────────────────
+
+  const connectInnerTube = useCallback(
+    (videoId: string) => {
+      return new Promise<boolean>((resolve) => {
+        const es = new EventSource(`/api/youtube/innertube?videoId=${videoId}`);
+        eventSourceRef.current = es;
+        usingInnerTubeRef.current = true;
+
+        let resolved = false;
+
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            switch (data.type) {
+              case "connected":
+                setStreamInfo({
+                  videoId,
+                  channelId: data.streamInfo.channelId || "",
+                  channelTitle: data.streamInfo.channelTitle || "",
+                  title: data.streamInfo.title || "",
+                  thumbnailUrl: data.streamInfo.thumbnailUrl,
+                  concurrentViewers: data.streamInfo.concurrentViewers,
+                });
+                setConnectionState("connected");
+                if (!resolved) {
+                  resolved = true;
+                  resolve(true);
+                }
+                break;
+
+              case "message": {
+                const msg: ChatMessage = {
+                  ...data.message,
+                  timestamp: new Date(data.message.timestamp),
+                };
+                if (!seenIdsRef.current.has(msg.id)) {
+                  seenIdsRef.current.add(msg.id);
+                  setMessages((prev) => {
+                    const combined = [...prev, msg];
+                    return combined.slice(-maxMessages);
+                  });
+                }
+                break;
+              }
+
+              case "end":
+                setConnectionState("offline");
+                es.close();
+                eventSourceRef.current = null;
+                break;
+
+              case "error":
+                if (!resolved) {
+                  resolved = true;
+                  es.close();
+                  eventSourceRef.current = null;
+                  usingInnerTubeRef.current = false;
+                  resolve(false);
+                }
+                break;
+            }
+          } catch {
+            // JSON parse error, ignore
+          }
+        };
+
+        es.onerror = () => {
+          if (!resolved) {
+            resolved = true;
+            es.close();
+            eventSourceRef.current = null;
+            usingInnerTubeRef.current = false;
+            resolve(false);
+          } else {
+            // Connection lost after successful connect - try to reconnect
+            es.close();
+            eventSourceRef.current = null;
+            // If we were connected, attempt SSE reconnect
+            if (connectionStateRef.current === "connected") {
+              setConnectionState("connecting");
+              setTimeout(() => {
+                if (connectionStateRef.current !== "disconnected") {
+                  connectInnerTube(videoId);
+                }
+              }, 2000);
+            }
+          }
+        };
+      });
+    },
+    [maxMessages],
+  );
+
+  // ── Public connect: InnerTube first, then fallback ───────
+
+  const connect = useCallback(
+    async (videoUrl: string) => {
+      disconnect();
+      setError(null);
+      setConnectionState("connecting");
+      seenIdsRef.current.clear();
+      setMessages([]);
+
+      const videoId = extractVideoId(videoUrl);
+      if (!videoId) {
+        setError("Please enter a valid YouTube URL or video ID");
+        setConnectionState("error");
+        return;
+      }
+
+      // Try InnerTube first (no quota, any channel)
+      const innerTubeSuccess = await connectInnerTube(videoId);
+      if (innerTubeSuccess) return;
+
+      // Fallback to official API
+      await connectPolling(videoId);
+    },
+    [disconnect, connectInnerTube, connectPolling],
   );
 
   const clearMessages = useCallback(() => {
@@ -365,8 +485,9 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
   useEffect(() => {
     return () => {
       stopPolling();
+      closeEventSource();
     };
-  }, [stopPolling]);
+  }, [stopPolling, closeEventSource]);
 
   return {
     messages,

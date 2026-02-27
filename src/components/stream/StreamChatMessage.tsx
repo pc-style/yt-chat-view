@@ -4,12 +4,11 @@ import { useState, memo, useMemo } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import type { ChatMessage as ChatMessageType } from "@/types/youtube";
-import { springs, getStaggerDelay } from "@/lib/motion";
+import { springs } from "@/lib/motion";
 import { useCustomization } from "@/lib/hooks/useCustomization";
 
 interface StreamChatMessageProps {
   message: ChatMessageType;
-  index: number;
 }
 
 /** Username color palette */
@@ -60,7 +59,7 @@ const RADIUS_MAP: Record<string, string> = {
  * 
  * Memoized to prevent unnecessary re-renders during rapid chat updates
  */
-export const StreamChatMessage = memo(function StreamChatMessage({ message, index }: StreamChatMessageProps) {
+export const StreamChatMessage = memo(function StreamChatMessage({ message }: StreamChatMessageProps) {
   const [imgError, setImgError] = useState(false);
   const { fontSize, borderRadius } = useCustomization();
   
@@ -94,10 +93,7 @@ export const StreamChatMessage = memo(function StreamChatMessage({ message, inde
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.1 } }}
-      transition={{ 
-        ...springs.smooth,
-        delay: getStaggerDelay(index, 0.015, 0.2),
-      }}
+      transition={springs.smooth}
       className={`group flex items-start gap-3 px-4 py-2 hover:bg-white/[0.03] transition-colors ${
         isSuperChat 
           ? "bg-gradient-to-r from-amber-500/15 via-orange-500/5 to-transparent" 

@@ -371,11 +371,10 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
           <LayoutGroup>
             <div className="py-4 space-y-1">
               <AnimatePresence mode="popLayout" initial={false}>
-                {messages.map((msg, idx) => (
+                {messages.map((msg) => (
                   <StreamChatMessage 
                     key={msg.id} 
                     message={msg} 
-                    index={idx}
                   />
                 ))}
               </AnimatePresence>

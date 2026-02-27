@@ -1,0 +1,151 @@
+/**
+ * InnerTube (YouTube.js) chat provider
+ * Uses YouTube's internal API via youtubei.js - no API key, no quota limits
+ * Server-side only
+ */
+
+import { Innertube, UniversalCache, YTNodes } from "youtubei.js";
+import type { ChatMessage, BadgeType, MessageType } from "@/types/youtube";
+
+/**
+ * Create a fresh Innertube instance
+ * Each SSE connection gets its own instance to avoid shared state issues
+ */
+export async function createInnerTube(): Promise<Innertube> {
+  return Innertube.create({ cache: new UniversalCache(false) });
+}
+
+/**
+ * Convert ARGB integer to hex color string
+ */
+function argbToHex(argb: number): string {
+  const r = (argb >> 16) & 0xff;
+  const g = (argb >> 8) & 0xff;
+  const b = argb & 0xff;
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
+/**
+ * Extract badges from InnerTube Author object
+ */
+function getInnerTubeBadges(author: {
+  is_moderator?: boolean;
+  is_verified?: boolean;
+  badges: Iterable<{ is: (type: typeof YTNodes.LiveChatAuthorBadge) => boolean; as: (type: typeof YTNodes.LiveChatAuthorBadge) => { icon_type?: string; style?: string } }>;
+}): BadgeType[] {
+  const badges: BadgeType[] = [];
+
+  if (author.is_moderator) badges.push("moderator");
+  if (author.is_verified) badges.push("verified");
+
+  for (const badge of author.badges) {
+    if (badge.is(YTNodes.LiveChatAuthorBadge)) {
+      const lcBadge = badge.as(YTNodes.LiveChatAuthorBadge);
+      if (lcBadge.icon_type === "OWNER") badges.push("owner");
+      if (lcBadge.style?.includes("MEMBER")) badges.push("member");
+    }
+  }
+
+  return badges;
+}
+
+/**
+ * Transform an InnerTube chat item (from AddChatItemAction) into our ChatMessage type
+ * Returns null for unsupported message types
+ */
+export function transformInnerTubeItem(
+  item: InstanceType<typeof YTNodes.AddChatItemAction>["item"],
+): ChatMessage | null {
+  if (!item) return null;
+
+  // Normal text message
+  if (item.is(YTNodes.LiveChatTextMessage)) {
+    const msg = item.as(YTNodes.LiveChatTextMessage);
+    return {
+      id: msg.id,
+      authorName: msg.author.name,
+      authorAvatarUrl: msg.author.best_thumbnail?.url || "",
+      authorChannelId: msg.author.id,
+      message: msg.message.toString(),
+      timestamp: new Date(msg.timestamp),
+      badges: getInnerTubeBadges(msg.author),
+      isSuperChat: false,
+      messageType: "textMessageEvent" as MessageType,
+    };
+  }
+
+  // Super Chat
+  if (item.is(YTNodes.LiveChatPaidMessage)) {
+    const sc = item.as(YTNodes.LiveChatPaidMessage);
+    return {
+      id: sc.id,
+      authorName: sc.author.name,
+      authorAvatarUrl: sc.author.best_thumbnail?.url || "",
+      authorChannelId: sc.author.id,
+      message: sc.message.toString(),
+      timestamp: new Date(sc.timestamp),
+      badges: getInnerTubeBadges(sc.author),
+      isSuperChat: true,
+      superChatAmount: sc.purchase_amount,
+      superChatColor: argbToHex(sc.header_background_color),
+      messageType: "superChatEvent" as MessageType,
+    };
+  }
+
+  // Super Sticker
+  if (item.is(YTNodes.LiveChatPaidSticker)) {
+    const ps = item.as(YTNodes.LiveChatPaidSticker);
+    return {
+      id: ps.id,
+      authorName: ps.author.name,
+      authorAvatarUrl: ps.author.best_thumbnail?.url || "",
+      authorChannelId: ps.author.id,
+      message: `[Super Sticker: ${ps.sticker_accessibility_label || "Sticker"}]`,
+      timestamp: new Date(ps.timestamp),
+      badges: getInnerTubeBadges(ps.author),
+      isSuperChat: true,
+      superChatAmount: ps.purchase_amount,
+      superChatColor: argbToHex(ps.money_chip_background_color),
+      messageType: "superStickerEvent" as MessageType,
+    };
+  }
+
+  // Membership join/milestone
+  if (item.is(YTNodes.LiveChatMembershipItem)) {
+    const mem = item.as(YTNodes.LiveChatMembershipItem);
+    const headerText = mem.header_primary_text?.toString() || "";
+    const messageText = mem.message?.toString() || headerText;
+    return {
+      id: mem.id,
+      authorName: mem.author.name,
+      authorAvatarUrl: mem.author.best_thumbnail?.url || "",
+      authorChannelId: mem.author.id,
+      message: messageText || `[New Member: ${mem.header_subtext?.toString() || ""}]`,
+      timestamp: new Date(mem.timestamp),
+      badges: getInnerTubeBadges(mem.author),
+      isSuperChat: false,
+      messageType: "newSponsorEvent" as MessageType,
+    };
+  }
+
+  // Gift membership purchase
+  if (item.is(YTNodes.LiveChatSponsorshipsGiftPurchaseAnnouncement)) {
+    const gift = item.as(YTNodes.LiveChatSponsorshipsGiftPurchaseAnnouncement);
+    const header = gift.header;
+    if (!header) return null;
+
+    return {
+      id: gift.id,
+      authorName: header.author_name?.toString() || "Unknown",
+      authorAvatarUrl: header.author_photo?.[0]?.url || "",
+      authorChannelId: gift.author_external_channel_id || "",
+      message: header.primary_text?.toString() || "[Gifted Memberships]",
+      timestamp: new Date(),
+      badges: [],
+      isSuperChat: false,
+      messageType: "membershipGiftingEvent" as MessageType,
+    };
+  }
+
+  return null;
+}
