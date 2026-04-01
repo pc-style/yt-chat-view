@@ -88,6 +88,7 @@ export function ChatContainer({ messages }: ChatContainerProps) {
           {virtualizer.getVirtualItems().map((virtualRow) => (
             <div
               key={virtualRow.key}
+              data-index={virtualRow.index}
               style={{
                 position: "absolute",
                 top: 0,
