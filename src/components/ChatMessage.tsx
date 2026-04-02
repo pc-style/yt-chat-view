@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Badge } from "./Badge";
 import type { ChatMessage as ChatMessageType } from "@/types/youtube";
 import { useCustomization } from "@/lib/hooks/useCustomization";
+import { renderMessage } from "@/lib/message-renderer";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -156,7 +157,7 @@ export const ChatMessage = memo(function ChatMessage({ message }: ChatMessagePro
         
         {/* Message (inline, truncated) */}
         <span className="text-text-v2 truncate" style={messageStyle}>
-          {message.message}
+          {renderMessage(message.message, message.messageParts)}
         </span>
       </article>
     );
@@ -234,7 +235,7 @@ export const ChatMessage = memo(function ChatMessage({ message }: ChatMessagePro
 
         {/* Message Body */}
         <p className="text-text-v2 font-medium break-words" style={messageStyle}>
-          {message.message}
+          {renderMessage(message.message, message.messageParts)}
         </p>
       </div>
 

@@ -5,6 +5,7 @@ import type {
   ChatMessage,
   BadgeType,
 } from "@/types/youtube";
+import { parseMessageForEmojis } from "@/lib/emoji-parser";
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 
@@ -174,12 +175,16 @@ export function transformMessage(msg: LiveChatMessage): ChatMessage {
       message = snippet.displayMessage || "";
   }
 
+  // Parse message for emojis to populate messageParts
+  const messageParts = parseMessageForEmojis(message);
+
   return {
     id: msg.id,
     authorName: authorDetails.displayName,
     authorAvatarUrl: authorDetails.profileImageUrl,
     authorChannelId: authorDetails.channelId,
     message,
+    messageParts,
     timestamp: new Date(snippet.publishedAt),
     badges: getBadges(authorDetails),
     isSuperChat,

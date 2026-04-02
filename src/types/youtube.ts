@@ -109,6 +109,19 @@ export interface VideoDetailsResponse {
   }>;
 }
 
+/** Emoji data for rich content rendering */
+export interface EmojiData {
+  name: string;
+  unicode?: string;
+}
+
+/** Message part for rich content rendering */
+export interface MessagePart {
+  type: 'text' | 'emoji';
+  value: string;
+  emojiData?: EmojiData;
+}
+
 /** Processed message for UI rendering */
 export interface ChatMessage {
   id: string;
@@ -116,6 +129,7 @@ export interface ChatMessage {
   authorAvatarUrl: string;
   authorChannelId: string;
   message: string;
+  messageParts?: MessagePart[];
   timestamp: Date;
   badges: BadgeType[];
   isSuperChat: boolean;

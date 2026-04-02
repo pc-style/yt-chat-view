@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import type { ChatMessage as ChatMessageType } from "@/types/youtube";
 import { springs } from "@/lib/motion";
 import { useCustomization } from "@/lib/hooks/useCustomization";
+import { renderMessage } from "@/lib/message-renderer";
 
 interface StreamChatMessageProps {
   message: ChatMessageType;
@@ -174,7 +175,7 @@ export const StreamChatMessage = memo(function StreamChatMessage({ message }: St
 
         {/* Message text */}
         <p className="text-white/90 leading-snug mt-1 font-medium break-words" style={messageStyle}>
-          {message.message}
+          {renderMessage(message.message, message.messageParts)}
         </p>
       </div>
     </motion.article>
