@@ -26,14 +26,16 @@ export function ChatContainer({ messages }: ChatContainerProps) {
 
   // Estimate size based on chat style (Compact vs Comfy)
   const estimateSize = useCallback(() => {
-    return chatStyle === "compact" ? 20 : 64; // Compact is single-line, ultra dense
+    // Compact: More accurate accounting for avatar, badges, text
+    // Comfy: Conservative estimate to prevent overlap (actual is 60-120+px)
+    return chatStyle === "compact" ? 22 : 100;
   }, [chatStyle]);
 
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
     estimateSize,
-    overscan: 10,
+    overscan: 20, // Increased from 10 to 20 for larger safety margin with varying message heights
   });
 
   const handleScroll = useCallback(() => {

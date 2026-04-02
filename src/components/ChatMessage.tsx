@@ -82,6 +82,11 @@ export const ChatMessage = memo(function ChatMessage({ message }: ChatMessagePro
   const messageStyle = useMemo<React.CSSProperties>(() => ({
     fontSize: `${fontSize}px`,
     lineHeight: `${fontSize * 1.5}px`,
+    wordBreak: 'break-word',        // NEW: Aggressive word breaking
+    overflowWrap: 'break-word',     // NEW: Standard overflow wrapping
+    display: '-webkit-box',         // NEW: Enable line clamping
+    WebkitLineClamp: 5,             // NEW: Max 5 lines
+    WebkitBoxOrient: 'vertical',    // NEW: Required for line-clamp
   }), [fontSize]);
 
   // Format timestamp from message
@@ -93,7 +98,7 @@ export const ChatMessage = memo(function ChatMessage({ message }: ChatMessagePro
   if (isCompact) {
     return (
       <article
-        className={`group flex items-center gap-1.5 px-3 py-0 transition-colors hover:bg-surface-muted border-l-2 border-transparent hover:border-accent/40 ${messageAnimations ? "animate-fade-in" : ""}`}
+        className={`group flex items-center gap-1.5 px-3 py-0 min-h-[20px] transition-colors hover:bg-surface-muted border-l-2 border-transparent hover:border-accent/40 ${messageAnimations ? "animate-fade-in" : ""}`}
         style={{
           borderRadius: itemRadius,
           ...(message.isSuperChat && message.superChatColor
@@ -200,7 +205,7 @@ export const ChatMessage = memo(function ChatMessage({ message }: ChatMessagePro
       )}
 
       <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-h-[20px]">
           {/* Super Chat - Show first for visibility */}
           {message.isSuperChat && message.superChatAmount && (
             <span
@@ -234,7 +239,7 @@ export const ChatMessage = memo(function ChatMessage({ message }: ChatMessagePro
         </div>
 
         {/* Message Body */}
-        <p className="text-text-v2 font-medium break-words" style={messageStyle}>
+        <p className="text-text-v2 font-medium break-words min-h-[18px] overflow-hidden" style={messageStyle}>
           {renderMessage(message.message, message.messageParts)}
         </p>
       </div>
