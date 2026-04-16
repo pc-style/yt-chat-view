@@ -25,7 +25,7 @@ const stateConfig: Record<
     icon: Loader2,
     color: "text-blue-400",
     bgColor: "bg-blue-500/10",
-    label: "Connecting...",
+    label: "Finding stream...",
   },
   connected: {
     icon: Wifi,

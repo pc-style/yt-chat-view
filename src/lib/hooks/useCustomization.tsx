@@ -57,7 +57,7 @@ const DEFAULT_STATE: CustomizationState = {
   
   fontFamily: "geist", // Default to Geist (Vercel's font)
   
-  isSidebarCollapsed: false,
+  isSidebarCollapsed: true,
   focusMode: false,
   chatWidth: 100,
   sidebarPosition: "left",

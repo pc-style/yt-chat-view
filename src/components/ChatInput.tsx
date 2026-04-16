@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { X, Play, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useCustomization } from "@/lib/hooks/useCustomization";
 
 interface ChatInputProps {
@@ -55,7 +56,7 @@ export function ChatInput({
           type="text"
           value={videoUrl}
           onChange={(e) => setVideoUrl(e.target.value)}
-          placeholder={isConnected ? "Connected to chat..." : "Paste YouTube URL to start chatting..."}
+          placeholder={isConnected ? "Connected to chat..." : "🎥  Paste any YouTube live stream URL..."}
           disabled={isConnected || isConnecting}
           className="w-full bg-transparent border-none text-text-v3 placeholder:text-text-v5/60 focus:outline-none focus:ring-0 text-sm py-1.5"
           aria-label="YouTube Video Link"
@@ -95,6 +96,24 @@ export function ChatInput({
           </button>
         )}
       </div>
+      
+      {/* Helpful examples for first-time users */}
+      {!isConnected && !isConnecting && !videoUrl && (
+        <motion.div 
+          className="absolute bottom-full left-0 right-0 mb-3 text-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="inline-flex flex-col gap-1 text-[10px] text-text-v5/40">
+            <span>Try these examples:</span>
+            <div className="flex gap-2 justify-center flex-wrap">
+              <code className="px-2 py-1 bg-white/5 rounded text-text-v5/60 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => setVideoUrl("https://www.youtube.com/watch?v=jfKfPfyJRdk")}>t3dotgg live</code>
+              <code className="px-2 py-1 bg-white/5 rounded text-text-v5/60 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => setVideoUrl("https://www.youtube.com/live")}>any live stream</code>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </form>
   );
 }

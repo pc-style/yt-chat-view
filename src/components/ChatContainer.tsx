@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown, MessageSquare } from "lucide-react";
+import { motion } from "framer-motion";
 import { ChatMessage } from "./ChatMessage";
 import type { ChatMessage as ChatMessageType } from "@/types/youtube";
 import { useCustomization } from "@/lib/hooks/useCustomization";
@@ -109,13 +110,29 @@ export function ChatContainer({ messages }: ChatContainerProps) {
 
         {messages.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center text-center p-8 animate-fade-in">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-accent/10 border border-accent/20">
-              <MessageSquare className="h-10 w-10 text-accent/50" />
-            </div>
-            <h2 className="text-2xl font-bold text-text-v1 mb-2">Welcome to YT_Chat</h2>
-            <p className="text-text-v5 max-w-xs leading-relaxed">
-              Connect to a YouTube Live stream using the input below.
+            <motion.div 
+              className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-accent/10 border border-accent/20"
+              animate={{ 
+                scale: [1, 1.05, 1],
+                boxShadow: [
+                  "0 0 20px rgba(202, 3, 119, 0.1)",
+                  "0 0 40px rgba(202, 3, 119, 0.2)",
+                  "0 0 20px rgba(202, 3, 119, 0.1)"
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <MessageSquare className="h-10 w-10 text-accent" />
+            </motion.div>
+            <h2 className="text-2xl font-bold text-text-v1 mb-3">Ready to watch live chat?</h2>
+            <p className="text-text-v4 max-w-sm leading-relaxed mb-6">
+              Paste any YouTube live stream URL below to start watching real-time messages instantly.
             </p>
+            <div className="flex flex-col gap-2 text-[11px] text-text-v5">
+              <span>✨ No registration required</span>
+              <span>🚀 Works with any public live stream</span>
+              <span>🎨 Fully customizable appearance</span>
+            </div>
           </div>
         )}
       </div>

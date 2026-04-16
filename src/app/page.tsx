@@ -8,7 +8,8 @@ import {
   Clock,
   RefreshCw,
   Play,
-  Zap
+  Zap,
+  Palette
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChatContainer } from "@/components/ChatContainer";
@@ -100,34 +101,41 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
         </motion.div>
         
         <motion.h1 
-          className="text-2xl font-black text-text-v1 mb-2 tracking-tight"
+          className="text-3xl font-black text-text-v1 mb-3 tracking-tight"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          Welcome to T3 Chat
+          YouTube Live Chat,
+          <br />
+          <span style={{ color: accentColor }}>Beautifully Simple</span>
         </motion.h1>
         <motion.p 
-          className="text-sm text-text-v5 mb-6 leading-relaxed"
+          className="text-sm text-text-v4 mb-8 leading-relaxed max-w-sm"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
         >
-          Connect to authorized YouTube live streams and view the chat in real-time with custom styling.
+          Watch any YouTube live chat in real-time. 
+          <br />
+          No registration required. 
+          <br />
+          <span className="text-text-v5">Try the demo to see it in action ↓</span>
         </motion.p>
         
         {/* Demo Mode Button */}
         <motion.button
           onClick={onStartDemo}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all"
+          className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all shadow-lg"
           style={{
-            background: `linear-gradient(135deg, ${accentColor}20, ${accentColor}10)`,
-            border: `1px solid ${accentColor}40`,
-            color: accentColor,
+            background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)`,
+            border: `1px solid ${accentColor}60`,
+            color: 'white',
+            boxShadow: `0 4px 20px ${accentColor}40`,
           }}
           whileHover={{ 
-            scale: 1.02,
-            boxShadow: `0 0 20px ${accentColor}30`,
+            scale: 1.05,
+            boxShadow: `0 8px 30px ${accentColor}50`,
           }}
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 10 }}
@@ -135,12 +143,14 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
           transition={{ delay: 0.2 }}
         >
           <Play className="h-4 w-4 fill-current" />
-          Try Live Demo
+          Try Live Demo - See How It Works
         </motion.button>
         
-        <p className="text-[10px] text-text-v5/60 mt-4">
-          Or paste a live stream URL below to connect
-        </p>
+        <div className="mt-6 flex items-center gap-2 text-[10px] text-text-v5/50">
+          <div className="h-px bg-text-v5/20 flex-1" />
+          <span>or paste any YouTube live URL below</span>
+          <div className="h-px bg-text-v5/20 flex-1" />
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -342,6 +352,24 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
           >
             <Maximize className="h-5 w-5 rotate-180" />
           </motion.button>
+        )}
+
+        {/* First-time user hint for customization */}
+        {!focusMode && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 2, duration: 0.5 }}
+            className="absolute left-4 top-20 z-40"
+          >
+            <button
+              onClick={() => updateField("isSidebarCollapsed", false)}
+              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 backdrop-blur-sm transition-all"
+            >
+              <Palette className="h-3.5 w-3.5 text-text-v4" />
+              <span className="text-xs text-text-v5 group-hover:text-text-v4">Customize</span>
+            </button>
+          </motion.div>
         )}
 
         {/* Transparent App Header - Hidden in Focus Mode */}
