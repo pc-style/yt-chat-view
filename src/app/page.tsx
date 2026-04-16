@@ -17,6 +17,7 @@ import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { CustomizationSidebar, SidebarContent } from "@/components/CustomizationSidebar";
 import { ChoiceScreen } from "@/components/ChoiceScreen";
 import { StreamPage } from "@/components/stream/StreamPage";
+import { TwitchChatPage } from "@/components/twitch/TwitchChatPage";
 import { QuotaErrorBoundary } from "@/components/QuotaErrorBoundary";
 import { DemoControls } from "@/components/DemoControls";
 import { MobileNav } from "@/components/MobileNav";
@@ -189,7 +190,7 @@ function StreamInfoBar({ streamInfo, isDemo }: { streamInfo: { channelTitle: str
  * Main application layout
  */
 export default function Home() {
-  const [uiVariant, setUiVariant] = useState<"yt_chat" | "yT3_chat" | null>(null);
+  const [uiVariant, setUiVariant] = useState<"yt_chat" | "yT3_chat" | "twitch_chat" | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load preference from localStorage on mount
@@ -197,14 +198,14 @@ export default function Home() {
     const hideChooser = localStorage.getItem("yt-chat-hide-chooser") === "true";
     const lastVariant = localStorage.getItem("yt-chat-last-variant");
 
-    if (hideChooser && (lastVariant === "yt_chat" || lastVariant === "yT3_chat")) {
+    if (hideChooser && (lastVariant === "yt_chat" || lastVariant === "yT3_chat" || lastVariant === "twitch_chat")) {
       setUiVariant(lastVariant);
     }
     setIsLoaded(true);
   }, []);
 
   // Handle choice selection
-  const handleChoice = (variant: "yt_chat" | "yT3_chat") => {
+  const handleChoice = (variant: "yt_chat" | "yT3_chat" | "twitch_chat") => {
     localStorage.setItem("yt-chat-last-variant", variant);
     setUiVariant(variant);
   };
@@ -249,7 +250,7 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* Stream UI */}
+      {/* Stream UI - Minimal YT */}
       {isLoaded && uiVariant === "yt_chat" && (
         <motion.div
           key="stream"
@@ -259,6 +260,19 @@ export default function Home() {
           transition={{ duration: 0.25 }}
         >
           <StreamPage onSwitchUI={handleSwitchUI} />
+        </motion.div>
+      )}
+
+      {/* Twitch-style UI */}
+      {isLoaded && uiVariant === "twitch_chat" && (
+        <motion.div
+          key="twitch"
+          className="h-screen"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.25 }}
+        >
+          <TwitchChatPage onSwitchUI={handleSwitchUI} />
         </motion.div>
       )}
 

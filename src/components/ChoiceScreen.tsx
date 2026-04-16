@@ -8,11 +8,11 @@ import {
   useTransform,
   AnimatePresence,
 } from "framer-motion";
-import { Monitor, Palette, Play, Sparkles } from "lucide-react";
+import { Monitor, Palette, Play, Sparkles, MessageSquare } from "lucide-react";
 import { springs } from "@/lib/motion";
 
 interface ChoiceScreenProps {
-  onChoice: (variant: "yt_chat" | "yT3_chat") => void;
+  onChoice: (variant: "yt_chat" | "yT3_chat" | "twitch_chat") => void;
   onDismiss: () => void;
 }
 
@@ -25,7 +25,7 @@ const springTransition = { type: "spring" as const, stiffness: 250, damping: 24 
  * Premium choice screen with orchestrated entry, 3D tilt cards, and cinematic exit
  */
 export function ChoiceScreen({ onChoice, onDismiss }: ChoiceScreenProps) {
-  const [exiting, setExiting] = useState<"yt_chat" | "yT3_chat" | null>(null);
+  const [exiting, setExiting] = useState<"yt_chat" | "yT3_chat" | "twitch_chat" | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Cursor spotlight
@@ -44,7 +44,7 @@ export function ChoiceScreen({ onChoice, onDismiss }: ChoiceScreenProps) {
   }, [cursorX, cursorY]);
 
   const handleChoice = useCallback(
-    (variant: "yt_chat" | "yT3_chat") => {
+    (variant: "yt_chat" | "yT3_chat" | "twitch_chat") => {
       setExiting(variant);
       setTimeout(() => onChoice(variant), 700);
     },
@@ -254,19 +254,19 @@ export function ChoiceScreen({ onChoice, onDismiss }: ChoiceScreenProps) {
                 transition={{ duration: 0.6, delay: 0.6 }}
                 className="text-base text-white/30 font-medium max-w-md mx-auto"
               >
-                Overlay for OBS, or dashboard for full control. Switch anytime.
+                Overlay for OBS, Twitch-style chat, or full dashboard. Switch anytime.
               </motion.p>
             </div>
 
             {/* Cards */}
-            <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl">
+            <div className="flex flex-col lg:flex-row gap-4 w-full max-w-5xl px-4">
               <TiltCard
                 variant="yt_chat"
                 delay={0.7}
                 exiting={exiting}
                 onClick={handleChoice}
                 accentColor="red"
-                icon={<Monitor className="h-6 w-6 text-red-400" />}
+                icon={<Monitor className="h-5 w-5 sm:h-6 sm:w-6 text-red-400" />}
                 title="YT"
                 subtitle="Minimal Overlay"
                 description="Transparent, lightweight chat overlay. Built for OBS and stream scenes."
@@ -276,12 +276,27 @@ export function ChoiceScreen({ onChoice, onDismiss }: ChoiceScreenProps) {
                 ]}
               />
               <TiltCard
-                variant="yT3_chat"
+                variant="twitch_chat"
                 delay={0.85}
                 exiting={exiting}
                 onClick={handleChoice}
+                accentColor="purple"
+                icon={<MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />}
+                title="Twitch"
+                subtitle="Classic Chat"
+                description="1:1 Twitch-style chat interface. Compact, familiar, and streamer-friendly."
+                tags={[
+                  { label: "Classic", accent: true },
+                  { label: "Chat Clone" },
+                ]}
+              />
+              <TiltCard
+                variant="yT3_chat"
+                delay={1.0}
+                exiting={exiting}
+                onClick={handleChoice}
                 accentColor="pink"
-                icon={<Palette className="h-6 w-6 text-pink-400" />}
+                icon={<Palette className="h-5 w-5 sm:h-6 sm:w-6 text-pink-400" />}
                 title="T3"
                 subtitle="Full Dashboard"
                 description="Themes, layouts, effects, and complete chat customization."
@@ -355,11 +370,11 @@ interface CardTag {
 }
 
 interface TiltCardProps {
-  variant: "yt_chat" | "yT3_chat";
+  variant: "yt_chat" | "yT3_chat" | "twitch_chat";
   delay: number;
-  exiting: "yt_chat" | "yT3_chat" | null;
-  onClick: (variant: "yt_chat" | "yT3_chat") => void;
-  accentColor: "red" | "pink";
+  exiting: "yt_chat" | "yT3_chat" | "twitch_chat" | null;
+  onClick: (variant: "yt_chat" | "yT3_chat" | "twitch_chat") => void;
+  accentColor: "red" | "pink" | "purple";
   icon: React.ReactNode;
   title: string;
   subtitle: string;
@@ -413,23 +428,30 @@ function TiltCard({
   }, [mouseX, mouseY]);
 
   const isRed = accentColor === "red";
+  const isPurple = accentColor === "purple";
   const isSelected = exiting === variant;
   const isOther = exiting !== null && !isSelected;
 
   const glowColor = isRed
     ? "rgba(239,68,68,0.10)"
-    : "rgba(236,72,153,0.10)";
+    : isPurple
+      ? "rgba(168,85,247,0.10)"
+      : "rgba(236,72,153,0.10)";
   const glowColorStrong = isRed
     ? "rgba(239,68,68,0.25)"
-    : "rgba(236,72,153,0.25)";
+    : isPurple
+      ? "rgba(168,85,247,0.25)"
+      : "rgba(236,72,153,0.25)";
   const borderGradient = isRed
     ? "linear-gradient(135deg, rgba(239,68,68,0.3), rgba(239,68,68,0.05), rgba(239,68,68,0.15))"
-    : "linear-gradient(135deg, rgba(236,72,153,0.3), rgba(236,72,153,0.05), rgba(236,72,153,0.15))";
+    : isPurple
+      ? "linear-gradient(135deg, rgba(168,85,247,0.3), rgba(168,85,247,0.05), rgba(168,85,247,0.15))"
+      : "linear-gradient(135deg, rgba(236,72,153,0.3), rgba(236,72,153,0.05), rgba(236,72,153,0.15))";
 
   return (
     <motion.button
       ref={cardRef}
-      initial={{ opacity: 0, y: 50, rotateZ: variant === "yt_chat" ? -1.5 : 1.5 }}
+      initial={{ opacity: 0, y: 50, rotateZ: variant === "yt_chat" ? -1.5 : variant === "twitch_chat" ? 0 : 1.5 }}
       animate={
         isSelected
           ? { opacity: 1, scale: 1.04, y: 0, rotateZ: 0 }
@@ -463,7 +485,7 @@ function TiltCard({
         />
 
         {/* Card surface */}
-        <div className="relative rounded-2xl border border-white/[0.06] bg-white/[0.025] p-8 backdrop-blur-sm transition-colors duration-300 group-hover:bg-white/[0.045] group-hover:border-white/[0.12]">
+        <div className="relative rounded-2xl border border-white/[0.06] bg-white/[0.025] p-5 sm:p-6 lg:p-5 xl:p-6 backdrop-blur-sm transition-colors duration-300 group-hover:bg-white/[0.045] group-hover:border-white/[0.12]">
           {/* Hover inner glow */}
           <motion.div
             className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -499,44 +521,48 @@ function TiltCard({
 
             {/* Icon */}
             <motion.div
-              className={`mb-6 flex h-14 w-14 items-center justify-center rounded-xl border transition-shadow duration-300 ${
+              className={`mb-4 sm:mb-5 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl border transition-shadow duration-300 ${
                 isRed
                   ? "bg-red-500/10 border-red-500/20 group-hover:shadow-[0_0_30px_rgba(239,68,68,0.15)]"
-                  : "bg-pink-500/10 border-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.15)]"
+                  : isPurple
+                    ? "bg-purple-500/10 border-purple-500/20 group-hover:shadow-[0_0_30px_rgba(168,85,247,0.15)]"
+                    : "bg-pink-500/10 border-pink-500/20 group-hover:shadow-[0_0_30px_rgba(236,72,153,0.15)]"
               }`}
-              whileHover={{ scale: 1.05, y: -3 }}
+              whileHover={{ scale: 1.05, y: -2 }}
               transition={springs.snappy}
             >
               {icon}
             </motion.div>
 
             {/* Title & subtitle */}
-            <h2 className="text-3xl font-black text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               {title}
             </h2>
             <p
-              className={`text-xs font-semibold uppercase tracking-wider mb-3 ${
-                isRed ? "text-red-400/60" : "text-pink-400/60"
+              className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-2 sm:mb-3 ${
+                isRed ? "text-red-400/60" : isPurple ? "text-purple-400/60" : "text-pink-400/60"
               }`}
             >
               {subtitle}
             </p>
 
             {/* Description */}
-            <p className="text-sm text-white/40 leading-relaxed mb-6">
+            <p className="text-xs sm:text-sm text-white/40 leading-relaxed mb-4 sm:mb-5">
               {description}
             </p>
 
             {/* Tags */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {tags.map((tag) => (
                 <span
                   key={tag.label}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                  className={`rounded-full px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 ${
                     tag.accent
                       ? isRed
                         ? "bg-red-500/10 border border-red-500/20 text-red-400"
-                        : "bg-pink-500/10 border border-pink-500/20 text-pink-400"
+                        : isPurple
+                          ? "bg-purple-500/10 border border-purple-500/20 text-purple-400"
+                          : "bg-pink-500/10 border border-pink-500/20 text-pink-400"
                       : "bg-white/[0.04] border border-white/[0.08] text-white/40"
                   }`}
                 >
