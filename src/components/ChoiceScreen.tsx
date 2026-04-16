@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   motion,
   useMotionValue,
@@ -26,6 +26,22 @@ const springTransition = { type: "spring" as const, stiffness: 250, damping: 24 
  */
 export function ChoiceScreen({ onChoice, onDismiss }: ChoiceScreenProps) {
   const [exiting, setExiting] = useState<"yt_chat" | "yT3_chat" | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Cursor spotlight
+  const cursorX = useMotionValue(-200);
+  const cursorY = useMotionValue(-200);
+  const smoothX = useSpring(cursorX, { stiffness: 80, damping: 30 });
+  const smoothY = useSpring(cursorY, { stiffness: 80, damping: 30 });
+
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => {
+      cursorX.set(e.clientX);
+      cursorY.set(e.clientY);
+    };
+    window.addEventListener("mousemove", handleMove);
+    return () => window.removeEventListener("mousemove", handleMove);
+  }, [cursorX, cursorY]);
 
   const handleChoice = useCallback(
     (variant: "yt_chat" | "yT3_chat") => {
@@ -38,7 +54,7 @@ export function ChoiceScreen({ onChoice, onDismiss }: ChoiceScreenProps) {
   return (
     <AnimatePresence>
       {!exiting || true ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+        <div ref={containerRef} className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
           {/* ── Background Layer ── */}
           <motion.div
             className="absolute inset-0 bg-[#050505]"
@@ -46,6 +62,35 @@ export function ChoiceScreen({ onChoice, onDismiss }: ChoiceScreenProps) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
           >
+            {/* Cursor spotlight - follows mouse */}
+            <motion.div
+              className="pointer-events-none absolute h-[600px] w-[600px] rounded-full"
+              style={{
+                x: smoothX,
+                y: smoothY,
+                translateX: "-50%",
+                translateY: "-50%",
+                background: "radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 30%, transparent 60%)",
+              }}
+            />
+
+            {/* Intro light sweep - plays once */}
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+            >
+              <motion.div
+                className="absolute top-0 h-full w-[200px]"
+                style={{
+                  background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), rgba(255,255,255,0.02), transparent)",
+                }}
+                initial={{ x: "-200px" }}
+                animate={{ x: "calc(100vw + 200px)" }}
+                transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+              />
+            </motion.div>
             {/* Primary gradient orb */}
             <motion.div
               className="absolute -top-40 -left-40 h-[700px] w-[700px] rounded-full"
