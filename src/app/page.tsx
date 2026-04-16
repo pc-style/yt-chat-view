@@ -6,12 +6,11 @@ import {
   MessageSquare,
   Users,
   Clock,
-  RefreshCw,
+  ArrowLeftRight,
   Play,
   Zap,
-  Palette
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChatContainer } from "@/components/ChatContainer";
 import { ChatInput } from "@/components/ChatInput";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
@@ -57,27 +56,10 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
         }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
       >
-        {/* Shimmer effect */}
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none"
-          initial={{ x: "-100%" }}
-          animate={{ x: "200%" }}
-          transition={{ duration: 3, repeat: Infinity, repeatDelay: 5, ease: "linear" }}
-        />
-        
         {/* Accent glow orb */}
-        <motion.div 
-          className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full blur-3xl"
+        <div 
+          className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full blur-3xl opacity-25"
           style={{ backgroundColor: accentColor }}
-          animate={{
-            opacity: [0.2, 0.4, 0.2],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
         />
         
         {/* Icon */}
@@ -87,15 +69,7 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
             background: `linear-gradient(135deg, ${accentColor}20, ${accentColor}05)`,
             borderColor: `${accentColor}30`,
           }}
-          animate={{ 
-            boxShadow: [
-              `0 0 20px ${accentColor}20`,
-              `0 0 40px ${accentColor}35`,
-              `0 0 20px ${accentColor}20`,
-            ]
-          }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-          whileHover={{ scale: 1.1, rotate: 5 }}
+          whileHover={{ scale: 1.05 }}
         >
           <MessageSquare className="h-8 w-8" style={{ color: accentColor }} />
         </motion.div>
@@ -106,9 +80,9 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          YouTube Live Chat,
+          Watch YouTube live chat
           <br />
-          <span style={{ color: accentColor }}>Beautifully Simple</span>
+          <span style={{ color: accentColor }}>in real time</span>
         </motion.h1>
         <motion.p 
           className="text-sm text-text-v4 mb-8 leading-relaxed max-w-sm"
@@ -116,11 +90,9 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
         >
-          Watch any YouTube live chat in real-time. 
+          Paste a live URL or try the demo.
           <br />
-          No registration required. 
-          <br />
-          <span className="text-text-v5">Try the demo to see it in action ↓</span>
+          <span className="text-text-v5">Customize the look anytime from the sidebar.</span>
         </motion.p>
         
         {/* Demo Mode Button */}
@@ -143,7 +115,7 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
           transition={{ delay: 0.2 }}
         >
           <Play className="h-4 w-4 fill-current" />
-          Try Live Demo - See How It Works
+          Try the demo
         </motion.button>
         
         <div className="mt-6 flex items-center gap-2 text-[10px] text-text-v5/50">
@@ -222,46 +194,88 @@ export default function Home() {
 
   // Load preference from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem("yt-chat-ui-variant");
-    if (stored === "yt_chat" || stored === "yT3_chat") {
-      setUiVariant(stored);
+    const hideChooser = localStorage.getItem("yt-chat-hide-chooser") === "true";
+    const lastVariant = localStorage.getItem("yt-chat-last-variant");
+
+    if (hideChooser && (lastVariant === "yt_chat" || lastVariant === "yT3_chat")) {
+      setUiVariant(lastVariant);
     }
     setIsLoaded(true);
   }, []);
 
   // Handle choice selection
   const handleChoice = (variant: "yt_chat" | "yT3_chat") => {
-    localStorage.setItem("yt-chat-ui-variant", variant);
+    localStorage.setItem("yt-chat-last-variant", variant);
     setUiVariant(variant);
+  };
+
+  // Dismiss chooser permanently
+  const handleDismissChooser = () => {
+    localStorage.setItem("yt-chat-hide-chooser", "true");
   };
 
   // Reset to choice screen
   const handleSwitchUI = () => {
-    localStorage.removeItem("yt-chat-ui-variant");
+    localStorage.removeItem("yt-chat-hide-chooser");
     setUiVariant(null);
   };
 
-  // Prevent flash of content before loading
-  if (!isLoaded) {
-    return (
-      <div className="h-screen w-full bg-[#0a0a0a] flex items-center justify-center">
-        <div className="h-8 w-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    );
-  }
+  return (
+    <AnimatePresence mode="wait">
+      {/* Loading screen */}
+      {!isLoaded && (
+        <motion.div
+          key="loading"
+          className="h-screen w-full bg-[#0a0a0a] flex items-center justify-center"
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <motion.div
+            className="h-3 w-3 rounded-full bg-white/60"
+            animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
+      )}
 
-  // Show choice screen if no preference
-  if (uiVariant === null) {
-    return <ChoiceScreen onChoice={handleChoice} />;
-  }
+      {/* Choice screen */}
+      {isLoaded && uiVariant === null && (
+        <motion.div
+          key="chooser"
+          exit={{ opacity: 0, scale: 0.96 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChoiceScreen onChoice={handleChoice} onDismiss={handleDismissChooser} />
+        </motion.div>
+      )}
 
-  // Show minimal stream UI
-  if (uiVariant === "yt_chat") {
-    return <StreamPage onSwitchUI={handleSwitchUI} />;
-  }
+      {/* Stream UI */}
+      {isLoaded && uiVariant === "yt_chat" && (
+        <motion.div
+          key="stream"
+          className="h-screen"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.25 }}
+        >
+          <StreamPage onSwitchUI={handleSwitchUI} />
+        </motion.div>
+      )}
 
-  // Show full T3 UI (current implementation)
-  return <T3ChatUI onSwitchUI={handleSwitchUI} />;
+      {/* Full T3 UI */}
+      {isLoaded && uiVariant === "yT3_chat" && (
+        <motion.div
+          key="t3"
+          className="h-screen"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.25 }}
+        >
+          <T3ChatUI onSwitchUI={handleSwitchUI} />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
 
 /**
@@ -354,24 +368,6 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
           </motion.button>
         )}
 
-        {/* First-time user hint for customization */}
-        {!focusMode && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 2, duration: 0.5 }}
-            className="absolute left-4 top-20 z-40"
-          >
-            <button
-              onClick={() => updateField("isSidebarCollapsed", false)}
-              className="group flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 backdrop-blur-sm transition-all"
-            >
-              <Palette className="h-3.5 w-3.5 text-text-v4" />
-              <span className="text-xs text-text-v5 group-hover:text-text-v4">Customize</span>
-            </button>
-          </motion.div>
-        )}
-
         {/* Transparent App Header - Hidden in Focus Mode */}
         {!focusMode && (
           <header className="flex h-16 items-center justify-between border-b border-card-border bg-background/50 px-8 backdrop-blur-md z-10 shrink-0 transition-colors duration-300">
@@ -399,7 +395,7 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
                 title="Switch UI Mode"
                 aria-label="Switch to different UI"
               >
-                <RefreshCw className="h-4.5 w-4.5" />
+                <ArrowLeftRight className="h-4.5 w-4.5" />
               </button>
             </div>
           </header>
@@ -430,7 +426,7 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
               {/* Premium Anchored Input Bar */}
               <div 
                 className={`w-full px-6 border-t border-card-border backdrop-blur-xl transition-all duration-300 ${focusMode ? "py-3 opacity-0 hover:opacity-100" : "py-4"}`}
-                style={{ backgroundColor: 'rgba(var(--background), 0.95)' }}
+                style={{ backgroundColor: 'var(--background)' }}
               >
                 <div className="max-w-3xl mx-auto flex flex-col gap-2">
                   {/* Demo Controls - shown when in demo mode and not in focus mode */}

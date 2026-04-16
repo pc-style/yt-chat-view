@@ -271,7 +271,7 @@ export function ChoiceScreen({ onChoice, onDismiss }: ChoiceScreenProps) {
               className="flex flex-col gap-1 text-center -mt-6"
             >
               <p className="text-[11px] text-white/20 font-medium">
-                Switch anytime from settings
+                Switch modes anytime from the top bar
               </p>
               <p className="text-[10px] text-white/15">
                 Questions or bugs?{" "}
