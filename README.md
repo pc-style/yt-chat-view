@@ -1,104 +1,95 @@
 # yT3 Chat
 
-A customizable YouTube Live Chat viewer built with Next.js. Two UI modes: full-featured dashboard (yT3 Chat) and minimal streamer-mode (yt_chat) for OBS overlays.
+yT3 Chat makes public YouTube Live chat easier to follow and present outside YouTube's standard watch page. It provides a customizable dashboard plus compact, streamer-oriented layouts suitable for browser-source capture, with a synthetic demo that works without connecting to YouTube.
 
-## Features
+**Project status:** Experimental personal project. The interface and integration behavior may change, and there is no uptime or support commitment. This is not an official YouTube or Google product.
 
-- **Two UI Modes**: Choose between minimal OBS-ready overlay or full-featured dashboard
-- **Real-time Chat**: Connect to any YouTube Live stream
-- **Demo Mode**: Try it out without using API quota
-- **Customizable**: Themes, colors, font sizes, layouts, and more
-- **BYOK (Bring Your Own Key)**: Use your own YouTube API key for unrestricted access
-- **Responsive**: Works on desktop and mobile
-- **Virtualized**: Handles high-volume chats efficiently
+[Open the live demo](https://yt.pcstyle.dev) · [Report an issue](https://github.com/pc-style/yt-chat-view/issues)
 
-## Getting Started
+## What it does
+
+- Reads public chat from an active YouTube Live stream.
+- Offers dashboard, minimal overlay, and Twitch-inspired layouts.
+- Customizes themes, type, message density, badges, timestamps, and effects.
+- Includes synthetic demo chat for evaluating the interface without API quota or live-chat data.
+- Uses a server-side InnerTube connection first and can fall back to the YouTube Data API v3.
+- Virtualizes message rendering for long chat sessions.
+
+The public demo is an existing deployment of this repository. It is provided for evaluation, not as a guaranteed service. You can also self-host the app.
+
+## Install locally
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) (recommended) or Node.js 18+
-- YouTube Data API v3 key (optional - default restricted to @t3dotgg)
-
-### Installation
+- [Bun](https://bun.sh/)
+- A YouTube Data API v3 key only if you want to configure the official-API fallback
 
 ```bash
-# Clone the repository
 git clone https://github.com/pc-style/yt-chat-view.git
 cd yt-chat-view
-
-# Install dependencies
 bun install
-
-# Start the development server
 bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the app.
+Then open `http://localhost:3000`.
 
-### Environment Variables
+For the official-API fallback, create `.env.local`:
 
-Create a `.env.local` file in the root directory:
-
-```bash
-# Required for unrestricted channel access
+```dotenv
 YOUTUBE_API_KEY=your_youtube_api_key
 
-# Optional: Redis caching (Upstash)
+# Optional shared cache and rate-limit storage
 UPSTASH_REDIS_REST_URL=your_redis_url
 UPSTASH_REDIS_REST_TOKEN=your_redis_token
 ```
 
-## Usage
+`KV_REST_API_URL` and `KV_REST_API_TOKEN` are also accepted for Redis-compatible Vercel KV configuration. Without Redis, the server uses process-local memory.
 
-### Connecting to a Stream
+## Use
 
-1. Open the app and choose your preferred UI mode
-2. Paste a YouTube Live URL in the input field
-3. Click Connect to start viewing chat
+1. Choose a layout or start Demo Mode.
+2. To view live chat, paste a public YouTube video, live, or short URL.
+3. Customize the layout for viewing or capture it as a browser source in streaming software.
 
-Supported URL formats:
-- `https://youtube.com/watch?v=VIDEO_ID`
-- `https://youtu.be/VIDEO_ID`
-- `https://youtube.com/live/VIDEO_ID`
+Supported inputs include full `youtube.com/watch`, `youtube.com/live`, and `youtu.be` URLs, or an 11-character video ID.
 
-### Demo Mode
+The app attempts its server-side InnerTube integration first. If that cannot connect, the official YouTube Data API fallback needs either the deployment's server key or a key entered in the UI. Demo Mode uses bundled fictional messages and does not contact YouTube for chat data.
 
-Click "Try Demo Mode" to see the chat in action without using any API quota. Great for testing customization options.
+## Trust, privacy, and data boundaries
 
-### BYOK Mode
+Review these boundaries before entering a stream URL or API key, especially on a deployment you do not operate:
 
-Without an API key, the app is restricted to @t3dotgg streams only. To connect to any channel:
-1. Get a YouTube Data API v3 key from [Google Cloud Console](https://console.cloud.google.com/)
-2. Add it in the Settings panel or set `YOUTUBE_API_KEY` environment variable
+- Live-chat connections run through this app's server. The server sends the video ID to YouTube and returns public stream metadata and chat messages to the browser.
+- A YouTube API key entered in the UI is stored in that browser's `localStorage`. On official-API fallback requests, it is sent to this app's server and then to Google's YouTube Data API. Do not enter a key into a deployment you do not trust; restrict keys in Google Cloud and rotate any key you believe was exposed.
+- Official-API responses and pagination state are cached briefly in server memory and, when configured, Upstash Redis. Cache keys use a short non-cryptographic identifier derived from a BYOK key rather than the full key.
+- Connect and message endpoints rate-limit by client IP. When Redis is configured, rate-limit counters containing the IP in their key can be stored there for the rate-limit window; otherwise they remain in server memory.
+- UI preferences, including a UI-entered API key, are persisted in browser `localStorage`. The repository does not include analytics or advertising code.
+- Public chat can contain names, avatars, messages, and payment-related display text supplied by YouTube. Treat captured overlays, screenshots, and recordings according to your own obligations and YouTube's terms.
 
-## Tech Stack
+Hosting providers, Google/YouTube, and an optional Upstash account have their own logging and privacy practices. This repository does not make guarantees about an operator's deployment configuration.
 
-- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
-- **Language**: TypeScript
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Virtualization**: [@tanstack/react-virtual](https://tanstack.com/virtual)
-
-## Scripts
+## Quality checks
 
 ```bash
-bun run dev        # Start development server
-bun run build      # Build for production
-bun run start      # Start production server
-bun run lint       # Run ESLint
-bun run typecheck  # Run TypeScript type checking
+bun run lint
+bun run typecheck
+bun run build
 ```
+
+There is currently no automated test suite in the repository.
+
+## Technology
+
+[Next.js 16](https://nextjs.org/) · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion · TanStack Virtual · youtubei.js
 
 ## Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+See [CONTRIBUTING.md](CONTRIBUTING.md). This project is experimental, so opening an issue before a large change is recommended.
 
-## Links
+## Provenance
 
-- **Live Demo**: [yt.pcstyle.dev](https://yt.pcstyle.dev)
-- **Issues & Feature Requests**: [GitHub Issues](https://github.com/pc-style/yt-chat-view/issues)
-- **Questions**: [@pcstyle53 on X](https://x.com/pcstyle53)
+This repository and its Git history are the source of record for yT3 Chat. The project is maintained under the `pc-style` GitHub account and is independently developed; YouTube and Google do not sponsor or endorse it. YouTube is a trademark of Google LLC.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Released under the [MIT License](LICENSE).
