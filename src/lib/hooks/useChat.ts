@@ -365,6 +365,17 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
         usingInnerTubeRef.current = true;
 
         let resolved = false;
+        let fallbackStarted = false;
+
+        const startPollingFallback = () => {
+          if (fallbackStarted) return;
+          fallbackStarted = true;
+          es.close();
+          eventSourceRef.current = null;
+          usingInnerTubeRef.current = false;
+          setConnectionState("connecting");
+          void connectPolling(videoId);
+        };
 
         es.onmessage = (event) => {
           try {
@@ -415,6 +426,8 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
                   eventSourceRef.current = null;
                   usingInnerTubeRef.current = false;
                   resolve(false);
+                } else {
+                  startPollingFallback();
                 }
                 break;
             }
@@ -431,23 +444,12 @@ export function useChat({ maxMessages = 500, apiKey }: UseChatOptions = {}): Use
             usingInnerTubeRef.current = false;
             resolve(false);
           } else {
-            // Connection lost after successful connect - try to reconnect
-            es.close();
-            eventSourceRef.current = null;
-            // If we were connected, attempt SSE reconnect
-            if (connectionStateRef.current === "connected") {
-              setConnectionState("connecting");
-              setTimeout(() => {
-                if (connectionStateRef.current !== "disconnected") {
-                  connectInnerTube(videoId);
-                }
-              }, 2000);
-            }
+            startPollingFallback();
           }
         };
       });
     },
-    [maxMessages],
+    [maxMessages, connectPolling],
   );
 
   // ── Public connect: InnerTube first, then fallback ───────

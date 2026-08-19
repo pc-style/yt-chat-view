@@ -1,4 +1,13 @@
-const THEO_LIVE_URL = "https://www.youtube.com/@t3dotgg/live";
+const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
+const THEO_CHANNEL_ID = "UCbRP3c757lWg9M-U7TyEkXA";
+
+interface SearchResponse {
+  items?: Array<{
+    id?: {
+      videoId?: string;
+    };
+  }>;
+}
 
 /**
  * GET /api/youtube/theo-live
@@ -7,8 +16,24 @@ const THEO_LIVE_URL = "https://www.youtube.com/@t3dotgg/live";
  * Vercel caches results for 60 seconds and serves stale results while refreshing.
  */
 export async function GET() {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+
+  if (!apiKey) {
+    return Response.json(
+      { status: "error", code: "MISSING_API_KEY", message: "YouTube API key not configured" },
+      { status: 500 },
+    );
+  }
+
   try {
-    const response = await fetch(THEO_LIVE_URL, {
+    const params = new URLSearchParams({
+      part: "snippet",
+      channelId: THEO_CHANNEL_ID,
+      eventType: "live",
+      type: "video",
+      key: apiKey,
+    });
+    const response = await fetch(`${YOUTUBE_API_BASE}/search?${params}`, {
       signal: AbortSignal.timeout(5000),
     });
 
@@ -16,10 +41,8 @@ export async function GET() {
       throw new Error("Failed to check live status");
     }
 
-    const html = await response.text();
-    const videoId = html.match(
-      /<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/,
-    )?.[1];
+    const data: SearchResponse = await response.json();
+    const videoId = data.items?.[0]?.id?.videoId;
 
     return Response.json({
       status: "success",
