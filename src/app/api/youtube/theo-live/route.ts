@@ -1,19 +1,10 @@
-import type { NextRequest } from "next/server";
 import { getCacheKey, getOrFetch } from "@/lib/cache";
 
-const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 const THEO_CHANNEL_ID = "UCbRP3c757lWg9M-U7TyEkXA";
+const THEO_LIVE_URL = "https://www.youtube.com/@t3dotgg/live";
 
-// Cache for 120 seconds to avoid burning quota (search API costs 100 units)
+// Cache for 120 seconds so most visits avoid a YouTube request entirely.
 const LIVE_STATUS_CACHE_TTL_MS = 120 * 1000;
-
-interface SearchResponse {
-  items?: Array<{
-    id?: {
-      videoId?: string;
-    };
-  }>;
-}
 
 interface TheoLiveData {
   isLive: boolean;
@@ -24,49 +15,34 @@ interface TheoLiveData {
  * GET /api/youtube/theo-live
  * Checks if Theo (@t3dotgg) is currently live streaming.
  * Returns the video ID if live, or indicates offline status.
- * Results are cached for 120 seconds to minimize API quota usage.
+ * Results are cached for 120 seconds.
  */
-export async function GET(request: NextRequest) {
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  
-  if (!apiKey) {
-    return Response.json(
-      { status: "error", code: "MISSING_API_KEY", message: "YouTube API key not configured" },
-      { status: 500 }
-    );
-  }
-
+export async function GET() {
   try {
     const cacheKey = getCacheKey("connect", `theo-live:${THEO_CHANNEL_ID}`, "server");
 
     const result = await getOrFetch<TheoLiveData>(
       cacheKey,
       async () => {
-        // Use search endpoint to check for live streams
-        const params = new URLSearchParams({
-          part: "snippet",
-          channelId: THEO_CHANNEL_ID,
-          eventType: "live",
-          type: "video",
-          key: apiKey,
+        const response = await fetch(THEO_LIVE_URL, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; yt-chat-view/1.0)",
+          },
+          signal: AbortSignal.timeout(5000),
         });
 
-        const response = await fetch(`${YOUTUBE_API_BASE}/search?${params}`);
-
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error?.message || "Failed to check live status");
+          throw new Error("Failed to check live status");
         }
 
-        const data: SearchResponse = await response.json();
-
-        // If items array has entries, the channel is live
-        const isLive = !!(data.items && data.items.length > 0);
-        const videoId = isLive ? data.items![0].id?.videoId : undefined;
+        const html = await response.text();
+        const videoId = html.match(
+          /<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})"/,
+        )?.[1];
 
         return {
           data: {
-            isLive,
+            isLive: Boolean(videoId),
             videoId,
           },
           ttlMs: LIVE_STATUS_CACHE_TTL_MS,
@@ -81,6 +57,10 @@ export async function GET(request: NextRequest) {
       meta: {
         fromCache: result.fromCache,
         fetchedAt: result.fetchedAt,
+      },
+    }, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       },
     });
 
