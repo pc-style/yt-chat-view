@@ -112,6 +112,9 @@ export default function TheoPage() {
   const isConnected = connectionState === "connected";
   const isConnecting = connectionState === "connecting";
   const hasMessages = messages.length > 0;
+  const liveStreamUrl = liveVideoId
+    ? `https://www.youtube.com/watch?v=${liveVideoId}`
+    : "";
 
   const clearError = () => {
     // Error dismissal handled by QuotaErrorBoundary
@@ -220,6 +223,7 @@ export default function TheoPage() {
                     onDisconnect={disconnect}
                     isConnected={isConnected}
                     isConnecting={isConnecting}
+                    initialVideoUrl={liveStreamUrl}
                   />
                   {!focusMode && (
                     <p className="text-[10px] text-text-v5/40 text-center">

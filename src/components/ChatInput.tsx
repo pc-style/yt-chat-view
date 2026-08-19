@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { X, Play, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCustomization } from "@/lib/hooks/useCustomization";
@@ -10,6 +10,7 @@ interface ChatInputProps {
   onDisconnect: () => void;
   isConnected: boolean;
   isConnecting: boolean;
+  initialVideoUrl?: string;
 }
 
 /**
@@ -20,9 +21,16 @@ export function ChatInput({
   onDisconnect,
   isConnected,
   isConnecting,
+  initialVideoUrl = "",
 }: ChatInputProps) {
-  const [videoUrl, setVideoUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState(initialVideoUrl);
   const { accentColor } = useCustomization();
+
+  useEffect(() => {
+    if (initialVideoUrl) {
+      setVideoUrl((currentUrl) => currentUrl || initialVideoUrl);
+    }
+  }, [initialVideoUrl]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

@@ -192,13 +192,18 @@ function StreamInfoBar({ streamInfo, isDemo }: { streamInfo: { channelTitle: str
 export default function Home() {
   const [uiVariant, setUiVariant] = useState<"yt_chat" | "yT3_chat" | "twitch_chat" | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [sharedStreamUrl, setSharedStreamUrl] = useState("");
 
   // Load preference from localStorage on mount
   useEffect(() => {
+    const shareUrl = new URLSearchParams(window.location.search).get("share")?.trim();
     const hideChooser = localStorage.getItem("yt-chat-hide-chooser") === "true";
     const lastVariant = localStorage.getItem("yt-chat-last-variant");
 
-    if (hideChooser && (lastVariant === "yt_chat" || lastVariant === "yT3_chat" || lastVariant === "twitch_chat")) {
+    if (shareUrl) {
+      setSharedStreamUrl(shareUrl);
+      setUiVariant("yT3_chat");
+    } else if (hideChooser && (lastVariant === "yt_chat" || lastVariant === "yT3_chat" || lastVariant === "twitch_chat")) {
       setUiVariant(lastVariant);
     }
     setIsLoaded(true);
@@ -285,7 +290,7 @@ export default function Home() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.25 }}
         >
-          <T3ChatUI onSwitchUI={handleSwitchUI} />
+          <T3ChatUI onSwitchUI={handleSwitchUI} sharedStreamUrl={sharedStreamUrl} />
         </motion.div>
       )}
     </AnimatePresence>
@@ -295,7 +300,13 @@ export default function Home() {
 /**
  * Full-featured T3 UI (original implementation)
  */
-function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
+function T3ChatUI({
+  onSwitchUI,
+  sharedStreamUrl,
+}: {
+  onSwitchUI: () => void;
+  sharedStreamUrl: string;
+}) {
   const [isDemo, setIsDemo] = useState(false);
   
   const { 
@@ -321,6 +332,13 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
   // Use the appropriate chat based on demo mode
   const chat = isDemo ? demoChat : liveChat;
   const { messages, connectionState, error, streamInfo, connect, disconnect } = chat;
+  const connectLiveChat = liveChat.connect;
+
+  useEffect(() => {
+    if (sharedStreamUrl) {
+      void connectLiveChat(sharedStreamUrl);
+    }
+  }, [sharedStreamUrl, connectLiveChat]);
 
   // Extract demo-specific controls for the UI
   const demoControls = isDemo ? {
@@ -456,6 +474,7 @@ function T3ChatUI({ onSwitchUI }: { onSwitchUI: () => void }) {
                     onDisconnect={disconnect}
                     isConnected={isConnected}
                     isConnecting={isConnecting}
+                    initialVideoUrl={sharedStreamUrl}
                   />
                   {!focusMode && (
                     <p className="text-[10px] text-text-v5/40 text-center">
