@@ -11,8 +11,8 @@ import {
   Play, 
   Youtube, 
   Loader2, 
-  Key, 
-  RefreshCw,
+  Key,
+  X,
   LogOut,
   Zap
 } from "lucide-react";
@@ -147,13 +147,14 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black uppercase tracking-widest text-white/50">Settings</h3>
-                <motion.button 
+                <motion.button
                   onClick={() => setShowSettings(false)}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   className="p-2 rounded-lg bg-white/5 text-white/50 hover:text-white"
+                  aria-label="Close settings"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </motion.button>
               </div>
 
@@ -320,6 +321,7 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
             onClick={clearMessages}
             className="p-2 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors"
             title="Clear Chat"
+            aria-label="Clear chat"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             transition={springs.snappy}
@@ -330,6 +332,7 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
             onClick={() => setShowSettings(true)}
             className="p-2 rounded-xl text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors"
             title="Open Settings"
+            aria-label="Open settings"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             transition={springs.snappy}
@@ -340,7 +343,8 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
           <motion.button
             onClick={onSwitchUI}
             className="p-2 rounded-xl text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors"
-            title="Switch to yT3 chat"
+            title="Switch UI mode"
+            aria-label="Switch UI mode"
             whileHover={{ scale: 1.1, rotate: -90 }}
             whileTap={{ scale: 0.9 }}
             transition={springs.snappy}
@@ -381,64 +385,63 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
             </div>
           </LayoutGroup>
 
-          {/* Empty State with enhanced animation */}
+          {/* Empty / connecting / waiting states */}
           <AnimatePresence>
-            {messages.length === 0 && !isConnected && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
+            {messages.length === 0 && (
+              <motion.div
+                key={isConnecting ? "connecting" : isConnected ? "waiting" : "idle"}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={springs.gentle}
                 className="flex flex-col items-center justify-center h-full text-center py-20"
               >
-                <motion.div
-                  className="mb-6 h-24 w-24 rounded-3xl bg-gradient-to-br from-red-500/20 to-red-500/5 border border-red-500/20 flex items-center justify-center"
-                >
-                  <Youtube className="h-12 w-12 text-red-400/60" />
-                </motion.div>
-                <motion.h2 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-2xl font-bold text-white/80 mb-2"
-                >
-                  Ready to stream
-                </motion.h2>
-                <motion.p 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-sm text-white/40 max-w-xs mb-6"
-                >
-                  Paste a YouTube Live URL below to start displaying chat
-                </motion.p>
-                
-                {/* Demo Button */}
-                <motion.button
-                  onClick={handleStartDemo}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all"
-                  style={{
-                    background: `linear-gradient(135deg, ${accentColor}30, ${accentColor}15)`,
-                    border: `1px solid ${accentColor}50`,
-                    color: accentColor,
-                  }}
-                >
-                  <Zap className="h-4 w-4" />
-                  Try Demo Mode
-                </motion.button>
-                <motion.p 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-[10px] text-white/30 mt-3"
-                >
-                  No API quota used
-                </motion.p>
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="h-10 w-10 animate-spin mb-6" style={{ color: accentColor }} />
+                    <h2 className="text-2xl font-bold text-white/80 mb-2">Connecting...</h2>
+                    <p className="text-sm text-white/40 max-w-xs">
+                      Looking up the live chat for this stream
+                    </p>
+                  </>
+                ) : isConnected ? (
+                  <>
+                    <div className="mb-6 h-24 w-24 rounded-3xl bg-gradient-to-br from-red-500/20 to-red-500/5 border border-red-500/20 flex items-center justify-center">
+                      <Youtube className="h-12 w-12 text-red-400/60" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white/80 mb-2">Connected</h2>
+                    <p className="text-sm text-white/40 max-w-xs">
+                      Waiting for the first chat message
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-6 h-24 w-24 rounded-3xl bg-gradient-to-br from-red-500/20 to-red-500/5 border border-red-500/20 flex items-center justify-center">
+                      <Youtube className="h-12 w-12 text-red-400/60" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white/80 mb-2">Ready to stream</h2>
+                    <p className="text-sm text-white/40 max-w-xs mb-6">
+                      Paste a YouTube Live URL below to start displaying chat
+                    </p>
+                    <motion.button
+                      onClick={handleStartDemo}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all"
+                      style={{
+                        background: `linear-gradient(135deg, ${accentColor}30, ${accentColor}15)`,
+                        border: `1px solid ${accentColor}50`,
+                        color: accentColor,
+                      }}
+                    >
+                      <Zap className="h-4 w-4" />
+                      Try Demo Mode
+                    </motion.button>
+                    <p className="text-[10px] text-white/30 mt-3">
+                      No API quota used
+                    </p>
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -522,7 +525,7 @@ export function StreamPage({ onSwitchUI }: StreamPageProps) {
                 ) : (
                   <Play className="h-4 w-4 fill-current" />
                 )}
-                {isConnecting ? "..." : "Connect"}
+                {isConnecting ? "Connecting..." : "Connect"}
               </motion.button>
             )}
           </AnimatePresence>

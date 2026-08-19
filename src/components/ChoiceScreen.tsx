@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Monitor, Palette, Sparkles, MessageSquare, ArrowRight, X } from "lucide-react";
-import { springs } from "@/lib/motion";
 
 interface ChoiceScreenProps {
   onChoice: (variant: "yt_chat" | "yT3_chat" | "twitch_chat") => void;
@@ -72,7 +71,7 @@ export function ChoiceScreen({ onChoice, onDismiss }: ChoiceScreenProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, ...springTransition }}
               >
-                Your stream's chat,
+                Your stream&apos;s chat,
                 <br />
                 <span style={{ color: ACCENT }}>your way</span>
               </motion.h1>

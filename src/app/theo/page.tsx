@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { 
   Maximize,
   ArrowLeftRight,
-  Play,
   Zap,
   Loader2,
   VideoOff,
@@ -23,7 +22,7 @@ import { useDemoChat } from "@/lib/hooks/useDemoChat";
 import { useCustomization } from "@/lib/hooks/useCustomization";
 
 /**
- * Theo-specific page that auto-connects to @t3dotgg's live stream
+ * Theo-specific page that auto-connects to @t3dotgg&apos;s live stream
  * Uses the T3 layout but skips the choice screen
  */
 export default function TheoPage() {
@@ -116,10 +115,6 @@ export default function TheoPage() {
     ? `https://www.youtube.com/watch?v=${liveVideoId}`
     : "";
 
-  const clearError = () => {
-    // Error dismissal handled by QuotaErrorBoundary
-  };
-
   return (
     <div className="flex h-screen bg-background text-text-v3 selection:bg-accent/30 overflow-hidden">
       {/* Side Customization Panel - Hidden in Focus Mode (desktop only) */}
@@ -155,7 +150,7 @@ export default function TheoPage() {
                 <StreamInfoBar streamInfo={streamInfo} isDemo={isDemo} />
               ) : (
                 <>
-                  <span className="text-sm font-bold text-text-v1 tracking-tight">Theo's Live Chat</span>
+                  <span className="text-sm font-bold text-text-v1 tracking-tight">Theo&apos;s Live Chat</span>
                   <div className="h-4 w-px bg-card-border" />
                   <span className="text-xs font-medium text-text-v5 px-2 py-1 rounded bg-white/5">
                     {messages.length} messages
@@ -198,7 +193,7 @@ export default function TheoPage() {
                 {isLoadingLiveStatus ? (
                   <LoadingStatus />
                 ) : !isLive && !hasMessages && !isConnected ? (
-                  <OfflineStatus onStartDemo={handleStartDemo} onConnect={handleConnectManually} />
+                  <OfflineStatus onStartDemo={handleStartDemo} />
                 ) : (
                   <ChatContainer messages={messages} />
                 )}
@@ -227,7 +222,7 @@ export default function TheoPage() {
                   />
                   {!focusMode && (
                     <p className="text-[10px] text-text-v5/40 text-center">
-                      Auto-connecting to @t3dotgg's live stream when available
+                      Auto-connecting to @t3dotgg&apos;s live stream when available
                     </p>
                   )}
                 </div>
@@ -264,7 +259,7 @@ function LoadingStatus() {
 /**
  * Offline status component
  */
-function OfflineStatus({ onStartDemo, onConnect }: { onStartDemo: () => Promise<void>; onConnect: (url: string) => Promise<void> }) {
+function OfflineStatus({ onStartDemo }: { onStartDemo: () => Promise<void> }) {
   const { accentColor } = useCustomization();
   
   return (

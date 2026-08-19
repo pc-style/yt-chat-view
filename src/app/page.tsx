@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
+import {
   Maximize,
   MessageSquare,
   Users,
@@ -9,6 +9,7 @@ import {
   ArrowLeftRight,
   Play,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatContainer } from "@/components/ChatContainer";
@@ -130,6 +131,23 @@ function WelcomeHero({ onStartDemo }: { onStartDemo: () => void }) {
 }
 
 /**
+ * Full-screen connecting state so it is obvious a connection is in progress
+ */
+function ConnectingState() {
+  const { accentColor } = useCustomization();
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-8 text-center" role="status" aria-live="polite">
+      <Loader2 className="h-10 w-10 animate-spin mb-6" style={{ color: accentColor }} />
+      <h2 className="text-xl font-bold text-text-v1 mb-2">Connecting to stream...</h2>
+      <p className="text-sm text-text-v4 max-w-sm">
+        Looking up the live chat for this video. This usually takes a few seconds.
+      </p>
+    </div>
+  );
+}
+
+/**
  * Stream Info Bar Component
  */
 function StreamInfoBar({ streamInfo, isDemo }: { streamInfo: { channelTitle: string; title: string; concurrentViewers?: string; actualStartTime?: string }; isDemo?: boolean }) {
@@ -215,9 +233,10 @@ export default function Home() {
     setUiVariant(variant);
   };
 
-  // Dismiss chooser permanently
+  // Dismiss chooser permanently and continue into the default UI
   const handleDismissChooser = () => {
     localStorage.setItem("yt-chat-hide-chooser", "true");
+    handleChoice("yT3_chat");
   };
 
   // Reset to choice screen
@@ -446,12 +465,14 @@ function T3ChatUI({
                 backgroundColor: chatWidth < 100 ? 'var(--background)' : 'transparent'
               }}
             >
-              {/* Show Welcome Hero or Chat */}
+              {/* Show Welcome Hero, Connecting state, or Chat */}
               <div className="flex-1 overflow-hidden py-0">
-                {!hasMessages && !isConnected ? (
+                {isConnecting && !hasMessages ? (
+                  <ConnectingState />
+                ) : !hasMessages && !isConnected ? (
                   <WelcomeHero onStartDemo={handleStartDemo} />
                 ) : (
-                  <ChatContainer messages={messages} />
+                  <ChatContainer messages={messages} isConnected={isConnected} />
                 )}
               </div>
               

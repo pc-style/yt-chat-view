@@ -2,17 +2,21 @@
 
 import { useRef, useEffect, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ArrowDown, 
-  Trash2, 
-  Settings, 
-  Play, 
-  Youtube, 
-  Loader2, 
-  Key, 
+import {
+  ArrowDown,
+  Trash2,
+  Settings,
+  Play,
+  Youtube,
+  Loader2,
+  Key,
   LogOut,
   Zap,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Crown,
+  Sword,
+  Check,
+  Star
 } from "lucide-react";
 import { useChat } from "@/lib/hooks/useChat";
 import { useDemoChat } from "@/lib/hooks/useDemoChat";
@@ -28,16 +32,13 @@ interface TwitchMessageProps {
   message: {
     id: string;
     authorName: string;
-    authorAvatarUrl: string;
     isVerified: boolean;
     isOwner: boolean;
     isModerator: boolean;
     isSponsor: boolean;
     message: string;
     timestamp: Date;
-    badges: string[];
   };
-  accentColor: string;
 }
 
 /**
@@ -74,55 +75,48 @@ function TwitchMessage({ message }: TwitchMessageProps) {
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      className="px-3 py-1 hover:bg-[#1F1F23] transition-colors"
-    >
+    <div className="px-3 py-1 hover:bg-[#1F1F23] transition-colors">
       <div className="flex flex-wrap items-baseline gap-x-1.5 text-[13px] leading-[1.4]">
         {/* Timestamp */}
         <span className="text-[#ADADB8] text-xs shrink-0">
           {formatTime(message.timestamp)}
         </span>
-        
+
         {/* Badges - Twitch style small icons */}
         {message.isOwner && (
-          <span 
-            className="inline-flex items-center justify-center w-4 h-4 rounded text-[10px] shrink-0"
+          <span
+            className="inline-flex items-center justify-center w-4 h-4 rounded shrink-0"
             style={{ backgroundColor: '#9146FF', color: 'white' }}
             title="Owner"
           >
-            ♕
+            <Crown className="w-2.5 h-2.5" aria-label="Owner" />
           </span>
         )}
         {message.isModerator && (
-          <span 
-            className="inline-flex items-center justify-center w-4 h-4 rounded text-[10px] shrink-0"
+          <span
+            className="inline-flex items-center justify-center w-4 h-4 rounded shrink-0"
             style={{ backgroundColor: '#00ADAD', color: 'white' }}
             title="Moderator"
           >
-            ⚔️
+            <Sword className="w-2.5 h-2.5" aria-label="Moderator" />
           </span>
         )}
         {message.isVerified && (
-          <span 
-            className="inline-flex items-center justify-center w-4 h-4 rounded text-[10px] shrink-0"
+          <span
+            className="inline-flex items-center justify-center w-4 h-4 rounded shrink-0"
             style={{ backgroundColor: '#FACC15', color: 'black' }}
             title="Verified"
           >
-            ✓
+            <Check className="w-2.5 h-2.5" aria-label="Verified" />
           </span>
         )}
         {message.isSponsor && (
-          <span 
-            className="inline-flex items-center justify-center w-4 h-4 rounded text-[10px] shrink-0"
+          <span
+            className="inline-flex items-center justify-center w-4 h-4 rounded shrink-0"
             style={{ backgroundColor: '#00F593', color: 'black' }}
             title="Member"
           >
-            ★
+            <Star className="w-2.5 h-2.5" aria-label="Member" />
           </span>
         )}
         
@@ -141,7 +135,7 @@ function TwitchMessage({ message }: TwitchMessageProps) {
           {message.message}
         </span>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -157,11 +151,10 @@ export function TwitchChatPage({ onSwitchUI }: TwitchChatPageProps) {
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
-  const { 
-    apiKey, 
-    updateField, 
-    fontSize, 
-    accentColor,
+  const {
+    apiKey,
+    updateField,
+    fontSize,
     maxLoadedMessages
   } = useCustomization();
 
@@ -273,6 +266,7 @@ export function TwitchChatPage({ onSwitchUI }: TwitchChatPageProps) {
             onClick={() => setShowSettings(!showSettings)}
             className="p-1.5 rounded hover:bg-white/10 text-[#ADADB8] hover:text-[#EFEFF1] transition-colors"
             title="Settings"
+            aria-label="Settings"
           >
             <Settings className="h-4 w-4" />
           </button>
@@ -281,6 +275,7 @@ export function TwitchChatPage({ onSwitchUI }: TwitchChatPageProps) {
             onClick={clearMessages}
             className="p-1.5 rounded hover:bg-white/10 text-[#ADADB8] hover:text-red-400 transition-colors"
             title="Clear chat"
+            aria-label="Clear chat"
             disabled={messages.length === 0}
           >
             <Trash2 className="h-4 w-4" />
@@ -290,6 +285,7 @@ export function TwitchChatPage({ onSwitchUI }: TwitchChatPageProps) {
             onClick={onSwitchUI}
             className="p-1.5 rounded hover:bg-white/10 text-[#ADADB8] hover:text-[#EFEFF1] transition-colors"
             title="Switch UI Mode"
+            aria-label="Switch UI mode"
           >
             <ArrowLeftRight className="h-4 w-4" />
           </button>
@@ -453,31 +449,41 @@ export function TwitchChatPage({ onSwitchUI }: TwitchChatPageProps) {
         >
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-[#ADADB8]">
-              <MessageSquarePlaceholder />
-              <p className="mt-4 text-sm">Welcome to the chat room!</p>
+              {isConnecting ? (
+                <>
+                  <Loader2 className="h-10 w-10 animate-spin text-[#9146FF]" />
+                  <p className="mt-4 text-sm font-semibold text-[#EFEFF1]">Connecting to stream...</p>
+                  <p className="mt-1 text-xs text-[#6B6B6F]">Looking up the live chat</p>
+                </>
+              ) : isConnected ? (
+                <>
+                  <MessageSquarePlaceholder />
+                  <p className="mt-4 text-sm">Connected. Waiting for messages...</p>
+                </>
+              ) : (
+                <>
+                  <MessageSquarePlaceholder />
+                  <p className="mt-4 text-sm">Paste a YouTube Live URL above to join the chat</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="py-2">
-              <AnimatePresence mode="popLayout">
-                {messages.map((msg) => (
-                  <TwitchMessage
-                    key={msg.id}
-                    message={{
-                      id: msg.id,
-                      authorName: msg.authorName,
-                      authorAvatarUrl: msg.authorAvatarUrl,
-                      isVerified: msg.badges.includes('verified'),
-                      isOwner: msg.badges.includes('owner'),
-                      isModerator: msg.badges.includes('moderator'),
-                      isSponsor: msg.badges.includes('member'),
-                      message: msg.message,
-                      timestamp: msg.timestamp,
-                      badges: msg.badges,
-                    }}
-                    accentColor={accentColor}
-                  />
-                ))}
-              </AnimatePresence>
+              {messages.map((msg) => (
+                <TwitchMessage
+                  key={msg.id}
+                  message={{
+                    id: msg.id,
+                    authorName: msg.authorName,
+                    isVerified: msg.badges.includes('verified'),
+                    isOwner: msg.badges.includes('owner'),
+                    isModerator: msg.badges.includes('moderator'),
+                    isSponsor: msg.badges.includes('member'),
+                    message: msg.message,
+                    timestamp: msg.timestamp,
+                  }}
+                />
+              ))}
             </div>
           )}
         </div>
