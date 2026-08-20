@@ -188,14 +188,16 @@ export default function TheoPage() {
                 backgroundColor: chatWidth < 100 ? 'var(--background)' : 'transparent'
               }}
             >
-              {/* Show Loading, Offline, or Chat */}
+              {/* Show Loading, Connecting, Offline, or Chat */}
               <div className="flex-1 overflow-hidden py-0">
                 {isLoadingLiveStatus ? (
                   <LoadingStatus />
+                ) : isConnecting && !hasMessages ? (
+                  <ConnectingStatus />
                 ) : !isLive && !hasMessages && !isConnected ? (
                   <OfflineStatus onStartDemo={handleStartDemo} />
                 ) : (
-                  <ChatContainer messages={messages} />
+                  <ChatContainer messages={messages} isConnected={isConnected} />
                 )}
               </div>
               
@@ -252,6 +254,21 @@ function LoadingStatus() {
         <Loader2 className="h-8 w-8 animate-spin" style={{ color: accentColor }} />
         <p className="text-sm text-text-v4">Checking if Theo is live...</p>
       </motion.div>
+    </div>
+  );
+}
+
+/**
+ * Connecting status component
+ */
+function ConnectingStatus() {
+  const { accentColor } = useCustomization();
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-8 text-center" role="status" aria-live="polite">
+      <Loader2 className="h-10 w-10 animate-spin mb-6" style={{ color: accentColor }} />
+      <h2 className="text-xl font-bold text-text-v1 mb-2">Connecting to stream...</h2>
+      <p className="text-sm text-text-v4 max-w-sm">Looking up the live chat for this video.</p>
     </div>
   );
 }

@@ -75,6 +75,25 @@ export async function GET(request: NextRequest) {
            },
          });
 
+        // Send the initial backlog of recent messages YouTube provides on join
+        livechat.once("start", (initialData) => {
+          for (const action of initialData.actions) {
+            if (action.is(YTNodes.AddChatItemAction)) {
+              const chatAction = action.as(YTNodes.AddChatItemAction);
+              const chatMessage = transformInnerTubeItem(chatAction.item);
+              if (chatMessage) {
+                send({
+                  type: "message",
+                  message: {
+                    ...chatMessage,
+                    timestamp: chatMessage.timestamp.toISOString(),
+                  },
+                });
+              }
+            }
+          }
+        });
+
         // Handle chat updates
         livechat.on("chat-update", (action) => {
           if (action.is(YTNodes.AddChatItemAction)) {
